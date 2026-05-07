@@ -1,6 +1,6 @@
 ---
 name: vedic-career
-description: 吠陀占星(Vedic/Jyotish)职业分析引擎。当用户提供Jagannatha Hora导出的星盘PDF、截图或文本数据，并要求进行职业分析、事业解读、星盘事业方向分析时触发此技能。也在用户提到"印度占星"、"吠陀占星"、"Jyotish"、"星盘职业分析"、"D9分析"、"Navamsa事业"、"10宫分析"等关键词时触发。
+description: 吠陀占星(Vedic/Jyotish)职业分析引擎。当用户提供星盘PDF、截图或文本数据，并要求进行职业分析、事业解读、星盘事业方向分析时触发此技能。也在用户提到"印度占星"、"吠陀占星"、"Jyotish"、"星盘职业分析"、"D9分析"、"Navamsa事业"、"10宫分析"等关键词时触发。
 ---
 
 # 吠陀职业架构分析引擎 (Vedic Career Architect)
@@ -111,7 +111,7 @@ MD文件是最终交付物的源文件（MD→HTML→PDF→客户）。文件里
 **目标:** 识别决定职业上限的格局和天赋星。
 
 **数据引用:**
-- 格局扫描 → structured_data 预分析·相位关系 + vedic-core/resources/yogas.md方法论
+- 格局扫描 → structured_data 预分析·相位关系 + 格局判定规则（参考vedic-core/resources/yogas.md）
 - 强星 → structured_data Shadbala排名（≥150%=强）
 - 变现 → structured_data SAV表（2宫/11宫SAV值）
 

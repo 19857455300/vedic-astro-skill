@@ -1,6 +1,6 @@
 ---
 name: vedic-love
-description: 吠陀占星(Vedic/Jyotish)恋爱时机分析引擎。当用户提供Jagannatha Hora导出的星盘PDF、截图或文本数据，并要求进行恋爱运势、感情分析、桃花时机分析时触发此技能。也在用户提到"恋爱运势"、"桃花时机"、"感情分析"、"吠陀恋爱"、"5宫/7宫分析"、"PK/DK分析"、"Upapada"等关键词时触发。
+description: 吠陀占星(Vedic/Jyotish)恋爱时机分析引擎。当用户提供星盘PDF、截图或文本数据，并要求进行恋爱运势、感情分析、桃花时机分析时触发此技能。也在用户提到"恋爱运势"、"桃花时机"、"感情分析"、"吠陀恋爱"、"5宫/7宫分析"、"PK/DK分析"、"Upapada"等关键词时触发。
 ---
 
 # 吠陀恋爱时机分析引擎 (Vedic Love Timing Architect)
