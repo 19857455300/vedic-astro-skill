@@ -1,6 +1,6 @@
 ---
 name: vedic-reader
-description: "吠陀占星读盘引擎。负责从Jagannatha Hora导出的PDF或截图中提取星盘数据，包含南印/北印图识别、多分盘提取、数学校验和生时矫正(ABC法)。当用户提到'读盘''提取数据''星盘数据''读取星盘''分析星盘'等关键词时触发。也在用户提供JH导出的PDF文件或星盘截图时自动触发。"
+description: "吠陀占星读盘引擎。从任意来源的星盘材料(PDF/截图/文本)中自适应提取行星数据，包含南印/北印图识别、多分盘提取、数学校验。支持Jagannatha Hora、Parashara's Light等各种占星软件导出。当用户提到'读盘''提取数据''星盘数据''读取星盘''分析星盘'等关键词时触发。也在用户提供星盘PDF文件或截图时自动触发。"
 ---
 
 # 吠陀占星 读盘引擎 (Vedic Chart Reader)
@@ -30,61 +30,129 @@ description: "吠陀占星读盘引擎。负责从Jagannatha Hora导出的PDF或
 
 ## 工作流程
 
-### Step 0: 接收材料
+### Step 0: 数据需求清单
 
-用户可能提供以下任一种：
+**在提取任何数据之前，先明确需要什么。**
 
-| 输入类型 | 处理方式 |
-|---------|---------|
-| JH导出PDF | PyMuPDF提取文本 -> 层级1 |
-| 星盘截图 | AI视觉识别 -> 层级3 |
-| 文本粘贴 | 直接解析 -> 层级2 |
+参考 resources/data_contract.md 确定完整数据清单：
+
+```
+🔴 关键数据（缺一不可，缺少则停下要求补充）：
+  □ 出生信息：日期、时间、地点
+  □ D1行星位置：9颗行星 + Lagna 的星座和度数
+  □ Chara Karakas：AK/AmK/BK/MK/DK/PK/GK排列
+  □ Vimsottari Dasha：至少大运(Mahadasha)的起止日期
+  □ Ayanamsa：用的什么岁差体系
+
+🟡 重要数据（有则分析更准确，无则降级处理）：
+  □ SAV/BAV：12宫 Ashtakavarga 数值
+  □ Shadbala：各行星力量百分比
+  □ Nakshatra/Pada：各行星星宿信息
+  □ D9分盘：9颗行星 + Lagna 的落宫
+  □ 逆行标记：哪些行星逆行
+
+🟢 可选数据（有则锦上添花）：
+  □ D10/D4/D5等分盘
+  □ 特殊点位：AL/UL/GL/HL/SL
+  □ Shadbala详细分项
+```
+
+---
+
+### Step 1: 自适应提取
+
+**不管用户给什么格式的文件，都按同一套流程提取。**
+
+#### 1.1 格式探测
+
+接收用户材料后，先判断类型：
+
+| 输入类型 | 探测方法 | 首选提取策略 |
+|---------|---------|------------|
+| PDF（有文本层） | PyMuPDF提取文本，检查是否有可读内容 | 文本解析 |
+| PDF（纯图片） | PyMuPDF提取文本为空或极少 | AI视觉识别 |
+| 图片/截图 | 文件扩展名为jpg/png/webp | AI视觉识别 |
+| 文本粘贴 | 用户直接在对话中输入 | 直接解析 |
+| 网页内容 | 用户粘贴HTML/表格 | 直接解析 |
 
 ```python
 import fitz  # PyMuPDF
 doc = fitz.open('chart.pdf')
+text = ""
 for page in doc:
-    text = page.get_text()
+    text += page.get_text()
 # 注意: 用view_file查看提取结果，终端print可能因编码乱码
+
+if len(text.strip()) > 100:
+    strategy = "文本解析"
+else:
+    strategy = "视觉识别"
 ```
 
 **关键操作**：提取PDF后，必须用 view_file 查看文本内容（不要用print），因为终端输出中文可能乱码。
 
----
+#### 1.2 智能关键词匹配
 
-### Step 1: 三层读盘
+不管什么软件导出的，行星数据的关键词是通用的：
 
-根据材料质量选择读取层级：
-
-#### 层级1（最优）：JH行星分盘表格
-
-JH PDF中的行星数据表格包含完整信息。
-
-**提取方法**：
-1. 在PDF文本中找到 "Planetary Positions" 或类似表头
-2. 提取每行：行星名 | 星座 | 度数 | Nakshatra | Pada | 逆行标记
-3. 找到 "Chara Karakas" 表：AK/AmK/BK/MK/DK/PK/PiK/GK
-4. 找到 "Vimsottari Dasha" 表：每个大运的起止日期
-5. 找到 "Ashtakavarga" 表：SAV和BAV数据
-6. 找到 "Shadbala" 表：各行星力量值
-
-**表格匹配关键词**：
 ```
-行星位置: "Graha", "Planet", "Longitude", "Rashi"
-Dasha: "Vimsottari", "Dasha", "Period"
-SAV: "Sarvashtakavarga", "SAV", "Ashtakavarga"
-Shadbala: "Shadbala", "Strength"
+行星名（多语言匹配）：
+  英文: Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu
+  缩写: Su, Mo, Ma, Me, Ju, Ve, Sa, Ra, Ke
+  梵文: Surya, Chandra, Mangal/Kuja, Budha, Guru, Shukra, Shani
+
+星座（多格式匹配）：
+  全称: Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, Pisces
+  缩写: Ar, Ta, Ge, Cn, Le, Vi, Li, Sc, Sg, Cp, Aq, Pi
+  编号: 1-12
+
+数据表（多关键词匹配）：
+  行星位置: "Graha", "Planet", "Longitude", "Rashi", "Position"
+  Dasha: "Vimsottari", "Dasha", "Period", "Mahadasha"
+  SAV: "Sarvashtakavarga", "SAV", "Ashtakavarga", "Transit Points"
+  Shadbala: "Shadbala", "Strength", "Bala"
+  Karaka: "Chara Karaka", "Karaka", "AK", "Atmakaraka"
 ```
 
-**可信度**: 高（JH计算的数学数据）
+#### 1.3 逐项提取并标记状态
 
-#### 层级2（可用）：文本层提取 + D9度数校验
+对Step 0清单中的每一项数据，标记提取结果：
 
-用户直接粘贴行星位置文本。
+```
+状态标记：
+  [已提取] 来源：文本层/视觉识别/用户输入 + 可信度(高/中/低)
+  [待确认] 识别到但不确定准确性 -> 需用户确认
+  [未找到] 在材料中没有找到 -> 记录缺失
+```
 
-**提取方法**：
-1. 解析每颗行星的星座和度数
-2. 用D9公式校验：
+#### 1.4 缺口分析
+
+提取完成后，对照Step 0清单：
+
+```
+关键数据缺失 -> 停下，明确告诉用户：
+  "以下关键数据未能从您的材料中提取，请补充：
+   - [缺失项1]：请提供...
+   - [缺失项2]：请提供..."
+
+重要数据缺失 -> 继续，但在structured_data中标注降级：
+  "以下数据未找到，分析将在相关维度降级处理：
+   - [缺失项]"
+
+可选数据缺失 -> 静默跳过，在structured_data中标注"无数据"
+```
+
+**不盲目猜测缺失数据，不编造数值。**
+
+#### 1.5 视觉识别模式
+
+当文本解析策略不可用时，使用AI视觉识别（南印/北印图规则见下方）：
+
+1. 识别图表类型（南印/北印）
+2. 定位Lagna(上升点)
+3. 按规则逐宫读取行星
+4. 生成结果表 -> 用户确认
+5. 用D9公式校验：
 ```
 D9计算公式：
 1. 绝对经度 = (星座序号-1)*30 + 度数
@@ -94,20 +162,7 @@ D9计算公式：
 3. D9星座 = (Navamsha序号 % 12) + 1
 ```
 
-**可信度**: 中（用户手动输入可能有误，但D9公式可交叉验证）
-
-#### 层级3（分盘主要方法）：AI视觉识别 + 多重校验 + 精准确认
-
-**必须条件**：用户提供排盘图片/截图
-
-**流程**：
-1. 识别图表类型（南印/北印）
-2. 定位Lagna(上升点)
-3. 按规则逐宫读取行星
-4. 生成结果表 -> 用户确认
-5. 用D9公式校验（如有D9图）
-
-**可信度**: 中低（AI视觉可能误读）-> 必须用户确认
+**视觉识别可信度: 中低 -> 必须用户确认**
 
 ##### 南印度盘(South Indian Chart)读取规则
 
