@@ -285,9 +285,13 @@ C级信号（简要审计即可）：
 
 ### 分组暂停
 ```
-第一组: Sun, Moon, Mars      → 写入 p2a_planets.md
-第二组: Mercury, Jupiter, Venus → 写入 p2b_planets.md
-第三组: Saturn, Rahu, Ketu    → 写入 p2c_planets.md
+第一组: Sun, Moon           → 写入 p2a_planets.md
+第二组: Mars, Mercury       → 写入 p2b_planets.md
+第三组: Jupiter, Venus      → 写入 p2c_planets.md
+第四组: Saturn, Rahu, Ketu  → 写入 p2d_planets.md
+
+⚠️ 每组写完立即保存，不要攒到最后一起写。
+   每个文件控制在80行/8KB以内。
 ```
 
 ---
@@ -409,7 +413,7 @@ E. 果实投射（Rashi Tulya Navamsha）：
 
 ## Step 3: 宫位诊断
 
-**开始前先回调数据**：用view_file重读p2a/p2b/p2c_planets.md中的行星审计表格，确保宫位分析引用的是精确数据而非对话记忆。
+**开始前先回调数据**：用view_file重读p2a/p2b/p2c/p2d_planets.md中的行星审计表格，确保宫位分析引用的是精确数据而非对话记忆。
 
 **参考：resources/house_framework.md**
 
@@ -476,13 +480,15 @@ E. 果实投射（Rashi Tulya Navamsha）：
 > 必须在状况概述里用一句话解释它是什么意思：
 > "你这个宫位属于'飘萍'模式——就是管家不在、资源也不够，全靠贵人帮忙"
 
-写入 p4_houses.md
+写入 p4a_houses.md（1-6宫）和 p4b_houses.md（7-12宫）
+→ 1-6宫写完即保存p4a，然后再写7-12宫到p4b
+→ 每个文件控制在80行/8KB以内
 
 ---
 
 ## Step 4: 十大板块总结
 
-**开始前先回调数据**：用view_file重读structured_data.md和已完成的p2a~p4文件的关键结论，不要凭记忆。
+**开始前先回调数据**：用view_file重读structured_data.md和已完成的p2a~p2d、p3、p4a/p4b文件的关键结论，不要凭记忆。
 
 ### Step 4前置：Dasha回顾速查表（必须先生成）
 
@@ -652,11 +658,13 @@ E. 果实投射（Rashi Tulya Navamsha）：
 ```
 工作目录/
   structured_data.md  ← reader提供（不修改）
-  p2a_planets.md      ← Step 1 Group1
-  p2b_planets.md      ← Step 1 Group2
-  p2c_planets.md      ← Step 1 Group3
+  p2a_planets.md      ← Step 1 Group1 (Sun, Moon)
+  p2b_planets.md      ← Step 1 Group2 (Mars, Mercury)
+  p2c_planets.md      ← Step 1 Group3 (Jupiter, Venus)
+  p2d_planets.md      ← Step 1 Group4 (Saturn, Rahu, Ketu)
   p3_divisional.md    ← Step 2
-  p4_houses.md        ← Step 3
+  p4a_houses.md       ← Step 3 (1-6宫)
+  p4b_houses.md       ← Step 3 (7-12宫)
   p5a_life.md         ← Step 4 板块1-5
   p5b_life.md         ← Step 4 板块6-10
   appendix.md         ← Step 5
@@ -671,7 +679,7 @@ E. 果实投射（Rashi Tulya Navamsha）：
 ```
 🎯 核心分析完成！
 
-已生成：p2a ~ p5b + appendix（共8个文件）
+已生成：p2a ~ p5b + appendix（共10个文件）
 
 你可以：
   → 继续提问任何问题（我会基于你的盘面数据回答）
