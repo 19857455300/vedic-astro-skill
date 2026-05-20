@@ -249,23 +249,48 @@ for i, page in enumerate(doc):
 
       "✅ D1基础数据和D9已提取并校验完毕。
 
-       ⚠️ D10/D4/D5分盘需要您提供截图——AI直接从PDF读小盘图准确率不够。
-       请从JHora中截屏以下3张分盘图发来：
+       ⚠️ 以下数据AI从PDF直接提取准确率不够，需要您配合：
+
+       📊 SAV(Ashtakavarga)数据：
+         → 在JHora中打开Ashtakavarga标签页 → 右键Copy → 粘贴给我
+         → 或者截图PDF第二页左上角的SAV表格（标题含'Ashtakavarga of Rasi Chart'）
+
+       📋 D10/D4/D5分盘：
+         请从JHora中截屏以下3张分盘图发来：
          ① D10 (Dasamsha) 盘
          ② D4 (Chaturthamsha) 盘
          ③ D5 (Panchamsha) 盘
-       每张截清楚行星缩写和As标记就行，手机拍屏幕也可以。
+         每张截清楚行星缩写和As标记就行，手机拍屏幕也可以。
 
-       → 发送截图后我会一起写入完整的structured_data.md
-       → 如果暂时没有截图，说'跳过'，对应分盘将标记为未验证"
+       → 发送后我会一起写入完整的structured_data.md
+       → 如果暂时没有，说'跳过'，对应数据将标记为未验证"
 
       → 等用户回复后再继续！
-      → 收到截图 → 从截图提取D10/D4/D5 → 连同D1/D9一起写入structured_data
-      → 用户说"跳过" → 标注"D10/D4/D5=未提取" → 写入structured_data（不含小分盘）
+      → 收到截图/文本 → 提取SAV+D10/D4/D5 → 连同D1/D9一起写入structured_data
+      → 用户说"跳过" → 标注对应数据为"未提取" → 写入structured_data（不含未提取部分）
       → 绝不自行从PDF渲染提取然后假装数据正确
       → 绝不先写structured_data再问截图
 
     → 每个分盘提取10行（Lagna + 9颗行星的星座和宫位）
+
+  SAV提取与映射（⚠️ 关键精度步骤）：
+    SAV原始数据是按星座(Rashi)存储的，不是按宫位(Bhava)！
+    南印度盘的SAV图中，每个格子=固定星座，不是宫位。
+
+    提取后必须执行sign→house映射：
+      星座编号: Ar=1, Ta=2, Ge=3, Cn=4, Le=5, Vi=6,
+                Li=7, Sc=8, Sg=9, Cp=10, Aq=11, Pi=12
+      映射公式: 第N宫SAV = 星座编号((Lagna编号 + N - 2) % 12 + 1)的SAV值
+
+      示例（Lagna=Taurus=2）：
+        1宫 = Taurus(2)的SAV值
+        7宫 = Scorpio(8)的SAV值  ← (2+7-2)%12+1 = 8
+        10宫 = Aquarius(11)的SAV值 ← (2+10-2)%12+1 = 11
+
+    structured_data中同时输出两张表：
+      ① 按星座的原始值（用于337校验）
+      ② 按宫位的映射值（供core/career/love直接使用）
+    参见data_contract.md中SAV部分的格式。
 
 ⚠️ 提取 ≠ 启用：
   此步骤提取所有分盘数据，但哪些分盘被"启用"由Step 3.5的
