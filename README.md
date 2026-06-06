@@ -1,209 +1,307 @@
-# 🔱 Vedic Astro Skills v6.2
+<p align="center">
+  <h1 align="center">🔱 Vedic Astro Skills v6.0</h1>
+  <p align="center">
+    <strong>AI驱动的吠陀占星分析系统 | AI-Powered Vedic Astrology Analysis System</strong>
+  </p>
+  <p align="center">
+    <img src="https://img.shields.io/badge/version-v6.0-blue" alt="Version">
+    <img src="https://img.shields.io/badge/python-3.8~3.13-green" alt="Python">
+    <img src="https://img.shields.io/badge/license-MIT-orange" alt="License">
+    <img src="https://img.shields.io/badge/skills-6-purple" alt="Skills">
+  </p>
+</p>
 
-> AI驱动的吠陀占星分析系统。六个专精Skill协同工作，从星盘数据提取到完整人生审计。
+---
+
+> **六个专精 Skill 协同工作，从原生排盘到完整人生审计。**
 >
-> AI-powered Vedic astrology analysis system. Six specialized skills working together — from chart data extraction to complete life audit.
+> Six specialized skills working together — from native chart calculation to complete life audit.
 
-**兼容 Antigravity 和 Claude Code。**
-
-> 💡 **v6.2 是本仓库的开源稳定版本。** 我们的开源初心不变——所有核心功能完整可用。本仓库持续接受社区反馈，修复bug和体验优化。随着前瞻版本的开发验证，成熟的功能也会逐步下放到开源版本。
+**兼容 Antigravity 和 Claude Code。** Compatible with Antigravity and Claude Code.
 
 ---
 
-## ✨ v6.2 核心特性
+## 📖 目录 / Table of Contents
 
-- 🧮 **原生排盘引擎** — vedic-calculator 直接计算星盘，无需JHora软件，输出与JHora 100%一致
-- 🔄 **三阶段执行引擎** — Reader分3个独立阶段执行，每阶段独立思考链，杜绝超长思考崩溃
-- 🧩 **16条数学校验** — SAV/BAV常量、Ra-Ke对冲、燃烧检测、行星战争、Sandhi/Gandanta、盈月亏月
-- 🎯 **需求驱动的数据契约** — 三级清单（🔴关键/🟡重要/🟢可选），缺口自动分析
-- 🛡️ **正反双审** — 所有Q&A强制列出支持和制约数据，防止AI偏见
-- ⏱️ **时间精度联动** — 出生时间精度不足时自动禁用高敏感分盘，推荐校准
-- 📝 **信号驱动验前事** — 弹性3-5条，SOP多维评估 + P1/P5工具箱
-- 🕰️ **时间校准引擎** — 5个人生事件逆推出生时间，精度±5分钟，且不强制改时间
-- 💍 **婚姻三阶段模型** — L7关系确立 → 9宫法律确认 → 11宫社会公开，替代单点预测
-- 📊 **智能报告打包** — 动态文件发现，按前缀自动分组，支持任意分段输出
+- [环境要求 / Requirements](#-环境要求--requirements)
+- [六Skill架构 / Architecture](#-六skill架构--architecture)
+- [快速开始 / Quick Start](#-快速开始--quick-start)
+- [各Skill说明 / Skill Details](#-各skill说明--skill-details)
+- [项目结构 / Project Structure](#-项目结构--project-structure)
+- [技术体系 / Technical Stack](#-技术体系--technical-stack)
+- [版本历史 / Version History](#-版本历史--version-history)
+- [赞赏 / Support](#-赞赏--support)
 
 ---
 
-## 🏛️ 六Skill架构
+## 🔧 环境要求 / Requirements
 
-```
-用户星盘 (PDF/截图/文本)         用户出生信息 (日期+时间+地点)
-    │                                    │
-    ▼                                    ▼
-┌─────────────┐                 ┌──────────────────┐
-│ vedic-reader │                │ vedic-calculator  │
-│ 三阶段执行引擎│                │ 原生排盘引擎       │
-│ 提取+校验    │                │ 直接计算,无需JHora │
-└──────┬──────┘                 └────────┬─────────┘
-       │ structured_data.md              │ structured_data.md
-       └──────────────┬─────────────────┘
-                      ▼
-               ┌─────────────┐     ┌────────────────┐
-               │  vedic-core  │────▶│ vedic-rectifier │
-               │ P1-P12审计   │     │ 5事件逆推±5min  │
-               │ 宫位诊断     │     └────────────────┘
-               │ 十大板块总结  │
-               └──────┬──────┘
-                      │ p2a~p5b + appendix
-                      ├──────────────┐
-                      ▼              ▼
-               ┌──────────────┐ ┌───────────┐
-               │ vedic-career │ │ vedic-love │
-               │ 职业蓝图4Phase│ │ 恋爱时机3Step│
-               └──────────────┘ └───────────┘
-```
+> ⚠️ **vedic-calculator 是整个系统的计算基座。**
+> 所有 Skill 的数据精度都依赖它，请在首次使用前确保环境就绪。
+>
+> **vedic-calculator is the computational foundation of the entire system.**
+> All skills depend on it for data accuracy. Please ensure your environment is ready before first use.
 
-| Skill | 功能 | 触发词 |
-|-------|------|--------|
-| 📖 **reader** | 星盘数据提取 + 16条数学校验 + 三阶段执行 | "读盘""星盘""印占""占星""看盘" |
-| 🧮 **calculator** | 原生排盘引擎，给出生时间即可计算 | "直接排盘""计算星盘""快速排盘" |
-| 🔬 **core** | P1-P12行星审计 + D9交叉 + 宫位诊断 + 十大板块 | "开始分析""帮我分析""星盘审计" |
-| 💼 **career** | 4Phase职业蓝图（生态位→格局→D9→全维合成） | "分析事业""职业分析""10宫分析" |
-| 💘 **love** | 3Step恋爱时机（体质→Dasha窗口→性质定性） | "分析感情""恋爱运势""桃花时机" |
-| 📐 **rectifier** | 5事件时间校准，精度±5分钟 | "校准时间""时间矫正""出生时间不准" |
-
----
-
-## ⚡ 使用指南
-
-### 🔧 环境要求（必装）
-
-> ⚠️ **vedic-calculator 是整个系统的计算基座**，所有 skill 的数据精度都依赖它。请在首次使用前完成以下安装。
-
-| 要求 | 说明 |
-|------|------|
-| **Python** | 3.8 ~ 3.13（3.14 暂不支持，pysweph 尚无预编译包） |
-| **依赖安装** | `pip install -r vedic-calculator/requirements.txt` |
+| 要求 Requirement | 说明 Details |
+|:---|:---|
+| **Python** | 3.8 ~ 3.13 （3.14 暂不支持 / not yet supported） |
+| **安装 Install** | `pip install -r vedic-calculator/requirements.txt` |
 
 ```bash
-# 依赖清单 (requirements.txt)
-pysweph>=2.10      # 天文计算引擎（Swiss Ephemeris 的 Python 封装）
-dashaflow>=0.3     # 尊贵度 + Jaimini Karakas
-PyJHora>=4.8.0     # SAV/BAV + 分盘 + Shadbala (含修正层)
-pytz>=2024.1       # 时区
+# 依赖清单 / Dependencies
+pysweph>=2.10      # Swiss Ephemeris — 天文计算引擎 / astronomical engine
+dashaflow>=0.3     # 尊贵度 + Karakas / dignity + Jaimini Karakas
+PyJHora>=4.8.0     # SAV/BAV + 分盘 + Shadbala / divisional charts + strength
+pytz>=2024.1       # 时区 / timezone
 ```
 
-> 💡 AI 首次运行时会自动检测环境，缺少依赖会自动创建 venv 并安装。通常你不需要手动操作，但**请确保系统已安装 Python 3.8~3.13**。
-
-### 🟢 推荐流程
-
-**方式A：有JHora PDF**
-> **Step 1** → 发送星盘PDF/截图，说 **"读盘"**
+> 💡 AI 首次运行时会自动检测环境并安装依赖。通常你不需要手动操作，但 **请确保已安装 Python 3.8~3.13。**
 >
-> AI运行 `vedic-reader`：三阶段提取（数据→预分析→验前事）→ 输出 structured_data.md
-
-**方式B：只知道出生时间（无PDF）**
-> **Step 1** → 提供出生日期、时间、地点，说 **"直接排盘"**
->
-> AI运行 `vedic-calculator`：直接计算星盘 → 输出 structured_data.md
-
-**后续步骤（两种方式相同）：**
-> **Step 2** → 说 **"开始分析"** → AI运行 `vedic-core`
->
-> **Step 3** → 说 **"分析事业"** 或 **"分析感情"**
-
-```
-路径A: 星盘PDF → reader(提取+校验) ─┐
-                                     ├→ core(审计) → career/love(专项)
-路径B: 出生时间 → calculator(计算)  ─┘
-```
-
-### 🟡 快速模式
-
-直接说"分析事业"或"分析感情"也可以。career/love会检测structured_data是否存在：
-- 存在 → 直接使用，深度模式
-- 不存在 → 提示先运行reader或calculator
-
-### 输入方式（按推荐程度排序）
-
-1. 🧮 **出生时间**（最简单）— 只需日期+时间+地点，calculator直接计算
-2. 📝 **文字粘贴** — 从占星软件复制表格直接粘贴，零误差
-3. 📄 **PDF上传** — 任何吠陀占星软件导出均可
-4. 📸 **截图** — 南印/北印盘均可识别（推荐南印度 Regular）
+> The AI agent will auto-detect and install dependencies on first run. You usually don't need to do anything manually, but **make sure Python 3.8~3.13 is installed.**
 
 ---
 
-## 📁 项目结构
+## 🏛️ 六Skill架构 / Architecture
+
+```
+用户星盘 (PDF/截图/文本)          用户出生信息 (日期+时间+地点)
+Chart file (PDF/image/text)      Birth info (date+time+place)
+    │                                    │
+    ▼                                    ▼
+┌──────────────┐                ┌───────────────────┐
+│ vedic-reader │                │ vedic-calculator   │
+│ 提取 + 校验   │                │ 原生排盘引擎        │
+│ Extract+Verify│                │ Native calc engine │
+└──────┬───────┘                └────────┬──────────┘
+       │                                 │
+       │     structured_data.md          │
+       └────────────┬────────────────────┘
+                    ▼
+             ┌─────────────┐      ┌────────────────┐
+             │ vedic-core   │─────▶│ vedic-rectifier │
+             │ P1-P12 审计   │      │ 时间校准 ±5min   │
+             │ 宫位诊断      │      │ Time rectify     │
+             │ 十大板块总结   │      └────────────────┘
+             └──────┬──────┘
+                    │
+          ┌─────────┴──────────┐
+          ▼                    ▼
+   ┌──────────────┐    ┌───────────┐
+   │ vedic-career  │    │ vedic-love │
+   │ 职业蓝图 4Phase│    │ 恋爱时机 3Step│
+   │ Career blueprint│  │ Love timing │
+   └──────────────┘    └───────────┘
+```
+
+| Skill | 功能 Function | 触发词 Trigger |
+|:------|:------|:------|
+| 🧮 **calculator** | 原生排盘引擎，给出生时间直接计算 / Native chart engine | "直接排盘" "计算星盘" "快速排盘" |
+| 📖 **reader** | 从 PDF/截图提取星盘数据 + 16条校验 / Extract from PDF/image | "读盘" "星盘" "印占" "占星" "看盘" |
+| 🔬 **core** | P1-P12行星审计 + 宫位诊断 + 十大板块 / Planet audit + life summary | "开始分析" "帮我分析" "星盘审计" |
+| 💼 **career** | 4Phase职业蓝图 / Career blueprint | "分析事业" "职业分析" |
+| 💘 **love** | 3Step恋爱时机分析 / Love timing analysis | "分析感情" "恋爱运势" "桃花时机" |
+| 📐 **rectifier** | 5事件逆推出生时间 ±5min / Birth time rectification | "校准时间" "时间矫正" |
+
+---
+
+## ⚡ 快速开始 / Quick Start
+
+> 💡 **只需说"读盘"或"占星"即可启动。** reader 是统一入口，会根据你提供的内容自动选择最佳路径。
+>
+> Just say "读盘" or "占星" to start. Reader is the unified entry point and auto-routes based on your input.
+
+### 用法示例 / Usage
+
+```
+场景1：只有出生时间
+用户: 帮我排盘，1990年3月15日 14:30 北京
+ AI: → reader 检测到出生信息 → 自动调用 calculator 排盘
+    → 输出 structured_data.md
+
+场景2：有 JHora PDF
+用户: [发送PDF] 读盘
+ AI: → reader 从 PDF 提取数据 + 16条校验
+    → 输出 structured_data.md
+
+场景3：什么都没带
+用户: 激活占星
+ AI: → reader 弹出引导菜单，让你选择输入方式
+
+后续（任何场景都一样）：
+用户: 开始分析      → vedic-core 完整审计
+用户: 分析事业      → vedic-career 职业蓝图
+用户: 分析感情      → vedic-love 恋爱时机
+```
+
+### reader 内部路由 / Internal Routing
+
+```
+用户输入
+  │
+  ├─ 提供了出生时间 ──→ 自动调用 vedic-calculator ──→ structured_data.md
+  ├─ 提供了 PDF/截图 ──→ reader 三阶段提取+校验 ──→ structured_data.md
+  └─ 什么都没提供   ──→ 弹出引导菜单
+```
+
+> ⚠️ 不需要手动选择 skill。**说"占星"就行**——reader 会自动判断。
+>
+> You don't need to manually choose a skill. Just say "占星" — reader handles routing automatically.
+
+> 💡 **关于 PDF 补充：** calculator 排盘完成后会提示：
+> - **a) 直接进入分析**（推荐）— calc 精度 >97%，排序与 JHora 一致，可直接用
+> - **b) 发送 JHora PDF 补充** — 可选，用 PDF 中更精确的 Shadbala 值替换
+>
+> 不补充也完全不影响分析质量。
+>
+> **About PDF supplement:** After calculator finishes, it offers an optional step to supplement with JHora PDF for marginally more precise Shadbala values. This is entirely optional — calc accuracy is >97%.
+
+---
+
+## 📋 各Skill说明 / Skill Details
+
+### 🧮 vedic-calculator — 原生排盘引擎 / Native Chart Engine
+
+**v6.0 新增。** 给出出生日期、时间、地点，直接计算完整星盘数据。
+
+*New in v6.0.* Given birth date, time, and place, calculates complete chart data natively.
+
+**计算项 / Outputs:**
+- 行星位置（经度、星座、Nakshatra）/ Planet positions
+- Vimsottari Dasha（大运 + 小运）/ Dasha periods
+- Chara Karakas（8K）/ Jaimini Karakas
+- D9 / D10 / D4 / D5 分盘 / Divisional charts
+- Shadbala 六力（含9项修正）/ Six strengths (9 fixes)
+- SAV / BAV 吉凶值 / Ashtakavarga
+- 尊贵度（Compound Relationship）/ Dignity
+- 相位、宫主表 / Aspects, house lords
+
+**精度验证 / Accuracy (tested against JHora):**
+
+| 项目 Item | 结果 Result |
+|:---|:---|
+| 行星位置 Positions | ✅ 100% 一致 |
+| Karakas | ✅ 8/8 |
+| D9 Navamsa | ✅ 10/10 |
+| Dasha 大运+小运 | ✅ 100% 一致 |
+| Shadbala 排序 | ✅ 7/7（平均偏差 0.07~0.11 rupas）|
+| SAV 总计 | ✅ 337 |
+
+---
+
+### 📖 vedic-reader — 读盘引擎 / Chart Reader
+
+从 PDF/截图/文本中提取星盘数据。三阶段执行引擎，16条数学校验。
+
+Extracts chart data from PDF/image/text. Three-phase execution engine with 16 mathematical validations.
+
+---
+
+### 🔬 vedic-core — 核心分析引擎 / Core Analysis
+
+P1-P12行星逐一审计 → D9交叉验证 → 宫位诊断 → 十大板块人生总结。正反双审防偏见。
+
+Planet-by-planet audit → D9 cross-validation → House diagnosis → Ten life domains. Double-blind audit against bias.
+
+---
+
+### 💼 vedic-career — 职业蓝图 / Career Blueprint
+
+4Phase 分析：生态位 → 格局 → D9确认 → 全维合成。覆盖 D1/D9/D10 三盘。
+
+4-Phase analysis: Ecological niche → Yogas → D9 confirmation → Full synthesis across D1/D9/D10.
+
+---
+
+### 💘 vedic-love — 恋爱时机 / Love Timing
+
+3Step 分析：体质评估 → Dasha窗口 → 性质定性。婚姻三阶段模型（L7确立 → 9宫法律 → 11宫公开）。
+
+3-Step analysis: Constitutional assessment → Dasha windows → Qualitative definition. Three-phase marriage model.
+
+---
+
+### 📐 vedic-rectifier — 时间校准 / Time Rectification
+
+5个人生重大事件逆推出生时间，精度 ±5分钟。不强制改时间——用户确认后才更新。
+
+5 major life events to reverse-engineer birth time to ±5 min accuracy. Never forces a time change.
+
+---
+
+## 📁 项目结构 / Project Structure
 
 ```
 vedic-astro-skills/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── antigravity/skills/          # Antigravity 版本
-│   ├── vedic-reader/
-│   │   ├── SKILL.md             # 读盘引擎 (1117行)
-│   │   └── resources/
-│   │       ├── data_contract.md  # 数据契约 (219行)
-│   │       └── validation_rules.md # 16条校验规则 (180行)
-│   ├── vedic-core/
-│   │   ├── SKILL.md             # 核心分析引擎 (875行)
-│   │   ├── resources/
-│   │   │   ├── p1_p12.md        # P1-P12参数定义 (335行)
-│   │   │   ├── house_framework.md # 宫位诊断框架 (211行)
-│   │   │   ├── yogas.md         # 格局判定规则 (169行)
-│   │   │   ├── qa_rules.md      # Q&A正反双审规则 (188行)
-│   │   │   └── report_rules.md  # 报告打包规则 (37行)
-│   │   └── scripts/
-│   │       └── report_builder.py # HTML报告生成器 (517行)
-│   ├── vedic-career/
-│   │   └── SKILL.md             # 职业分析引擎 (328行)
-│   ├── vedic-love/
-│   │   └── SKILL.md             # 恋爱时机引擎 (281行)
+├── antigravity/skills/              # Antigravity 版本
 │   ├── vedic-calculator/
-│   │   ├── SKILL.md             # 排盘引擎 (204行)
-│   │   ├── requirements.txt     # Python依赖清单
+│   │   ├── SKILL.md                 # 排盘引擎指令
+│   │   ├── requirements.txt         # Python 依赖
 │   │   └── scripts/
-│   │       ├── engine.py        # 主计算引擎 (797行)
-│   │       ├── formatter.py     # structured_data输出
-│   │       ├── transit.py       # 过运计算
-│   │       ├── shadbala_pyjhora.py  # Shadbala修正层 (494行)
-│   │       ├── divisional_pyjhora.py # 分盘计算
-│   │       ├── ashtakavarga_pyjhora.py # SAV/BAV计算
-│   │       └── extras_pyjhora.py # Bhava Bala等
+│   │       ├── engine.py            # 主计算引擎
+│   │       ├── formatter.py         # structured_data 输出
+│   │       ├── transit.py           # 过运计算
+│   │       ├── shadbala_pyjhora.py  # Shadbala 修正层
+│   │       ├── divisional_pyjhora.py
+│   │       ├── ashtakavarga_pyjhora.py
+│   │       └── extras_pyjhora.py
+│   ├── vedic-reader/
+│   │   ├── SKILL.md                 # 读盘引擎
+│   │   └── resources/
+│   ├── vedic-core/
+│   │   ├── SKILL.md                 # 核心分析引擎
+│   │   ├── resources/               # 参数/规则/框架
+│   │   └── scripts/
+│   │       └── report_builder.py    # HTML 报告生成
+│   ├── vedic-career/
+│   │   └── SKILL.md                 # 职业分析
+│   ├── vedic-love/
+│   │   └── SKILL.md                 # 恋爱分析
 │   └── vedic-rectifier/
-│       ├── SKILL.md             # 时间校准引擎 (373行)
-│       ├── requirements.txt     # Python依赖清单
+│       ├── SKILL.md                 # 时间校准
+│       ├── requirements.txt
 │       ├── resources/
-│       │   └── event_house_map.md # 事件-宫位映射 (129行)
 │       └── scripts/
-│           └── time_scan.py     # Lagna/D9扫描计算器 (222行)
-└── claude-code/skills/          # Claude Code 版本 (同上)
+│           └── time_scan.py         # Lagna/D9 扫描器
+└── claude-code/skills/              # Claude Code 版本 (同上)
 ```
 
-**总计：16个文件 | 6,000+行 | 220KB+**
+---
+
+## 🧪 技术体系 / Technical Stack
+
+| 项目 Item | 说明 Details |
+|:---|:---|
+| **流派 School** | KN Rao 体系 (Parashari)，Jaimini 辅助 |
+| **Ayanamsa** | Lahiri (默认 / default) |
+| **天文引擎 Ephemeris** | Swiss Ephemeris via pysweph |
+| **分盘 Divisions** | D1 / D9 / D10 / D4 / D5 |
+| **校验 Validation** | 16条数学校验（SAV=337、BAV行和常量、Ra-Ke对冲等）|
+| **反偏见 Anti-bias** | 正反双审 — 禁止只挑用户想听的数据 |
+| **执行引擎 Execution** | 三阶段独立思考链（防超长思考崩溃）|
 
 ---
 
-## 📋 版本历史
+## 📋 版本历史 / Version History
 
-| 版本 | 日期 | 改动 |
-|------|------|------|
-| **v6.2** | 2026-06-07 | **vedic-calculator 排盘引擎** + 移植性改造 + PyJHora依赖 |
-| v5.0 | 2026-05-22 | 三阶段执行引擎 + 性能优化 + 动态报告打包 |
-| v4.9 | 2026-05-14 | 验前事定版: SOP多维评估 + SAV映射铁规 |
-| v4.0 | 2026-05-10 | 双通道OCR + 验前事重写 + 时间精度联动 + Rectifier纠偏 |
-| v3.0 | 2026-05-06 | 五Skill架构确立 + Rectifier + 正反双审 |
+| 版本 | 日期 | 亮点 |
+|:---|:---|:---|
+| **v6.0** | 2026-06-07 | 🧮 **vedic-calculator 上线** — 原生排盘引擎 + 移植性改造 + 全系统接入 |
+| v5.0 | 2026-05-22 | 三阶段执行引擎 + 动态报告打包 |
+| v4.0 | 2026-05-10 | 双通道OCR + 时间精度联动 + Rectifier |
+| v3.0 | 2026-05-06 | 五Skill架构确立 + 正反双审 |
 
-详见 [CHANGELOG.md](CHANGELOG.md)
+详见 / See [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## 🧪 技术体系
-
-- **流派**: KN Rao体系 (Parashari)，Jaimini辅助
-- **Ayanamsa**: Lahiri (默认)
-- **分盘**: D1/D9/D10/D4/D5 (精度依赖出生时间)
-- **校验**: 16条数学校验（SAV=337、BAV行常量、Ra-Ke对冲、燃烧检测等）
-- **反偏见**: 正反双审机制 — 禁止只挑用户想听的数据
-- **执行引擎**: 三阶段独立思考链（提取→预分析→验前事）
-
-## ☕ Support / 赞赏
-
-If this project helps you, consider buying me a coffee:
+## ☕ 赞赏 / Support
 
 如果这个项目对你有帮助，欢迎赞赏支持：
+
+If this project helps you, consider buying me a coffee:
 
 <p align="center">
   <img src="assets/wechat.jpg" width="200" alt="WeChat Pay">
