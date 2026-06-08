@@ -6,6 +6,47 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v6.1] - 2026-06-08
+
+> 🎯 **精度修正 + 隐藏 bug 清除 + fail-fast 架构**
+
+### 🔴 修复 formatter.py Shadbala 百分比全错
+
+formatter 使用了不存在的 key `strength_ratio`，fallback 到 `rupas/6.0`（BPHS 每颗星要求不同：5~7）。导致 Mars 显示 99%（弱），实际 119%（中）。**直接误导分析判断。**
+
+- 修复：使用 `strength_pct`（shadbala_pyjhora 直接计算的百分比）
+- 新增：Ishta/Kashta Phala 列输出
+
+### 🔴 修复 Sun Ishta/Kashta 计算
+
+Sun 的 Ayana Bala 在 BPHS 中对 Sun 已做 ×2，但 Ishta/Kashta 需要原始值。修复前 Sun Kashta=0，修复后 33.74（PDF: 34.73）。
+
+### 🔴 engine.py v0.5 — fail-fast，移除所有 fallback
+
+- 删除 dashaflow SAV fallback（5/12 星座值不同）
+- 删除 dashaflow Shadbala fallback（6 个子项全错）
+- 删除自建 Dasha fallback（偏 6~9 天）
+- 缺依赖 → `raise ImportError` + 显示 `setup_env.py` 修复指引
+- **错误结果比无结果更糟**
+
+### 📖 SKILL.md 大幅更新
+
+- 新增 engine 返回数据结构文档（~90 行，每个 key 有说明）
+- 新增 SAV 验证代码示例（防止 agent 用错 key）
+- 新增规则：**禁止自己手写 print 来读取 chart 数据，必须用 formatter.py**
+- 技术规格更新为 v0.5 实际架构
+
+### 📊 精度验证（2 星盘三方对比）
+
+| 项目 | Raw PyJHora | 修正版 (9-fix) | 改善 |
+|---|---|---|---|
+| Shadbala 总误差 | 3.75 rupas | 0.52 rupas | 7.2x |
+| BAV 小项 | — | **84/84 完美匹配** | — |
+| SAV 12 星座 | — | **12/12 完美匹配** | — |
+| Dasha | — | **9/9 ≤2 天** | — |
+
+---
+
 ## [v6.0] - 2026-06-07
 
 > 🧮 **vedic-calculator 原生排盘引擎上线** — 六Skill架构完成
@@ -14,11 +55,11 @@ All notable changes to this project will be documented in this file.
 
 **从零到一的原生排盘引擎。** 给出出生日期、时间、地点，直接计算完整星盘。无需安装 JHora 或任何第三方占星软件。
 
-- **engine.py** — 主计算引擎，基于 pysweph + dashaflow + PyJHora
+- **engine.py** — 主计算引擎，基于 pysweph + PyJHora + dashaflow
 - **行星位置**：经度、星座、度数、Nakshatra（含 pada 和 lord）
 - **Vimsottari Dasha**：9段大运 + 当前大运的9段小运
 - **Chara Karakas**：8K 体系，含 DK 7K/8K 差异标注
-- **分盘计算**：D9 / D10 / D4 / D5（PyJHora 引擎优先，自研公式兜底）
+- **分盘计算**：15 张 D1~D60（PyJHora 原生）
 - **Shadbala 六力**：含9项修正的修正层（shadbala_pyjhora.py, 494行）
   - 修正 Hora Bala、Dig Bala、Paksha Bala、Tribhaga Bala 等 PyJHora 已知缺陷
 - **SAV / BAV**：Ashtakavarga 吉凶值（SAV 总和恒等于 337）
@@ -26,19 +67,10 @@ All notable changes to this project will be documented in this file.
 - **相位、宫主表、过运**
 - **formatter.py** — 输出 structured_data.md，与 reader 格式完全兼容
 
-#### 精度验证（3盘实测 vs JHora）
-
-| 盘 | 行星 | Karakas | D9 | Dasha | Shadbala偏差 | Shadbala排序 |
-|---|---|---|---|---|---|---|
-| 祁县 | ✅ | 8/8 | 10/10 | 9/9 | 0.07 rupas | 5/7 |
-| 莆田 | ✅ | 8/8 | 10/10 | 9/9 | 0.07 rupas | 7/7 |
-| 泉州 | ✅ | 8/8 | 10/10 | 9/9 | 0.11 rupas | 7/7 |
-
 ### 🔧 移植性改造
 
-- **依赖管理**：新增 requirements.txt（pysweph, dashaflow, PyJHora, pytz）
+- **setup_env.py**：跨平台环境自动搭建（Win/Mac/Linux）+ SAV=337 校验
 - **路径动态检测**：全部硬编码路径改为 `import jhora` → `__file__` 动态发现
-- **Python 版本兼容**：删除4个文件中的 `sys.path` Python 版本过滤 hack
 - **Python 3.8~3.13 全面支持**：pysweph 有 cp38~cp313 预编译 wheel
 
 ### 🔄 全系统接入
