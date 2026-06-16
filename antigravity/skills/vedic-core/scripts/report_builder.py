@@ -271,7 +271,7 @@ SECTION_REGISTRY = [
     (58, "appendix",    "appendix", "",  "技术附录",                   "Technical Appendix",
      ["appendix.md"]),
     (59, "rectify",     "appendix", "",  "时间校准报告",               "Birth Time Rectification",
-     ["rectification_report.md"]),
+     ["rectification_report.md", "rectification_scan.md"]),
 
     # ── Career ──
     # SKILL outputs: career_phase12.md, career_phase3.md, career_phase4a/4b/4c.md
