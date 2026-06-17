@@ -57,23 +57,21 @@ def format_structured_data(chart, transit_data, meta, user_info):
         lines.append(f"| {name} | {p['sign']} | {p['house']} | {p['deg_str']} | {r} |")
     lines.append("")
     
-    # Chara Karakas (8K主表 — 与JHora 8K设置对齐)
+    # Chara Karakas (7K主表 — KN Rao体系)
     lines.append("### Chara Karakas")
     lines.append("| 排名 | Karaka | 行星 | 有效度数 | 说明 |")
     lines.append("|------|--------|------|---------|------|")
-    for i, (k, planet, deg) in enumerate(chart['karakas']['8k']):
+    for i, (k, planet, deg) in enumerate(chart['karakas']['7k']):
         desc = KARAKA_DESC.get(k, '')
         lines.append(f"| {i+1} | {k} | {planet} | {deg:.1f}° | {desc} |")
     lines.append("")
-    lines.append("> Rahu参与8K，度数 = 30° - 原始度数\n")
+    lines.append("> KN Rao 7K体系：Sun~Saturn共7颗参与排序\n")
     
-    # DK争议
-    lines.append("### DK争议")
+    # DK (配偶指示星)
+    lines.append("### DK (配偶指示星)")
     lines.append("```")
-    lines.append(f"7K体系 DK = {chart['karakas']['dk_7k']}")
-    lines.append(f"8K体系 DK = {chart['karakas']['dk_8k']}")
-    status = '一致' if chart['karakas']['dk_consistent'] else '不一致 → 分析时弱化DK，以宫位结构为主'
-    lines.append(f"状态: {status}")
+    lines.append(f"DK = {chart['karakas']['dk_7k']}（7K主用）")
+    lines.append(f"8K参考 DK = {chart['karakas']['dk_8k']}")
     lines.append("```\n")
     
 

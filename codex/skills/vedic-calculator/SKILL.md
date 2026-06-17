@@ -262,7 +262,7 @@ chart = {
     'divisional_charts': {'D2': ..., 'D3': ..., ...},  # 额外分盘
 
     # 预分析
-    'karakas': {'8k': [...], 'dk_7k': 'Saturn', 'dk_8k': 'Mercury', 'dk_consistent': False},
+    'karakas': {'7k': [...], '8k': [...], 'dk_7k': 'Saturn', 'dk_8k': 'Rahu', 'dk_note': '7K(主)=Saturn, 8K(参考)=Rahu'},
     'dignity': {'Sun': {'compound': 'great_friend', ...}, ...},
     'aspects': [{'p1':'Rahu','p2':'Ketu','type':'对冲(180°)','degree_diff':'180.0'}, ...],
     'house_lords': {1: {'lord':'Moon','domain':'自我','lord_house':8}, ...},
@@ -282,7 +282,7 @@ chart = {
 | 元信息 | 出生时间、地点、Ayanamsa、读盘方式 |
 | 行星位置 | 10颗行星+Lagna，星座/宫位/度数/逆行 |
 | Nakshatra | 全部行星的Nakshatra+Pada |
-| Chara Karakas | 8K主表（含Rahu和PiK）+ DK争议 |
+| Chara Karakas | 7K主表（KN Rao）+ 8K参考 |
 | Shadbala | 7颗行星的Rupas/百分比/排名/强弱/Ishta/Kashta |
 | SAV | 原始值(按星座) + 宫位映射(按宫位) |
 | BAV | 7颗行星×12星座矩阵 |
@@ -305,7 +305,7 @@ chart = {
 - Shadbala: **PyJHora + 9项修正** (shadbala_pyjhora.py)
 - 分盘: **PyJHora 原生** (divisional_pyjhora.py) — 15张 D1~D60
 - Dignity: dashaflow + 旺/入庙/陷前置判断
-- Chara Karakas: 8K（含Rahu和PiK）+ DK争议
+- Chara Karakas: 7K（KN Rao）+ 8K参考
 - 容错策略: **fail-fast**（缺依赖直接报错，不给错误结果）
 
 ## 与其他skill的关系

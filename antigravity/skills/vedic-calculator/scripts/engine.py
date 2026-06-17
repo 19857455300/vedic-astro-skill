@@ -200,19 +200,19 @@ def calc_panchamsha(longitude):
     return SIGNS[d5_sign_idx], d5_sign_idx
 
 def calc_chara_karakas_7k8k(planets):
-    """Calculate both 7K and 8K Chara Karakas"""
+    """Calculate Chara Karakas (7K primary/KN Rao, 8K reference)"""
     # Effective degree = degree in sign (for Rahu: 30 - degree)
     karaka_data = []
     for name in ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn']:
         karaka_data.append((name, planets[name]['degree']))
     
-    # 7K: sort by degree descending, top 7
+    # 7K (primary/KN Rao): sort by degree descending, top 7
     sorted_7k = sorted(karaka_data, key=lambda x: x[1], reverse=True)
     karaka_names_7k = ['AK','AmK','BK','MK','PK','GK','DK']
     karakas_7k = [(karaka_names_7k[i], sorted_7k[i][0], sorted_7k[i][1]) 
                   for i in range(7)]
     
-    # 8K: add Rahu (30 - degree)
+    # 8K (reference/Sanjay Rath): add Rahu (30 - degree)
     rahu_eff_deg = 30 - planets['Rahu']['degree']
     karaka_data_8k = karaka_data + [('Rahu', rahu_eff_deg)]
     sorted_8k = sorted(karaka_data_8k, key=lambda x: x[1], reverse=True)
@@ -220,18 +220,16 @@ def calc_chara_karakas_7k8k(planets):
     karakas_8k = [(karaka_names_8k[i], sorted_8k[i][0], sorted_8k[i][1]) 
                   for i in range(8)]
     
-    # DK争议: 比较7K的第7位 vs 8K的第7位
-    # 目的：检测加入Rahu后，"第7位(配偶指示星位)"是否换了行星
-    dk_7k = karakas_7k[6][1]  # 7K第7位
-    dk_8k = sorted_8k[6][0]   # 8K第7位（不是第8位！）
-    dk_consistent = dk_7k == dk_8k
+    # DK: 7K为主，8K为参考
+    dk_7k = karakas_7k[6][1]     # 7K DK（主）
+    dk_8k = karakas_8k[7][1]     # 8K DK = 第8位（最低度数）
     
     return {
         '7k': karakas_7k,
         '8k': karakas_8k,
         'dk_7k': dk_7k,
         'dk_8k': dk_8k,
-        'dk_consistent': dk_consistent
+        'dk_note': f"7K(主)={dk_7k}, 8K(参考)={dk_8k}"
     }
 
 def calc_aspects(planets):
@@ -608,7 +606,7 @@ def calculate_full_chart(year, month, day, hour, minute, lat, lon, tz_str="Asia/
             if diff > 180: diff = 360 - diff
             combustion[name] = {'distance': round(diff, 2)}
     
-    # 8. Chara Karakas
+    # 8. Chara Karakas (7K primary)
     karakas = calc_chara_karakas_7k8k(planets)
     
     # 9. Aspects
@@ -722,7 +720,7 @@ if __name__ == '__main__':
     print(f"\n--- Chara Karakas (7K) ---")
     for k, planet, deg in chart['karakas']['7k']:
         print(f"  {k}: {planet} ({deg:.1f}°)")
-    print(f"  DK争议: 7K={chart['karakas']['dk_7k']}, 8K={chart['karakas']['dk_8k']}, 一致={chart['karakas']['dk_consistent']}")
+    print(f"  DK: 7K(主)={chart['karakas']['dk_7k']}, 8K(参考)={chart['karakas']['dk_8k']}")
     
     print(f"\n--- Aspects (top 5) ---")
     for a in chart['aspects'][:5]:

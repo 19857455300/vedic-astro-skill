@@ -75,21 +75,19 @@ Node模式: [Mean Node / True Node]
 | 5 | PK | [planet] | [deg] | 子女/恋爱指示星（love引用） |
 | 6 | GK | [planet] | [deg] | 障碍指示星 |
 | 7 | DK | [planet] | [deg] | 配偶指示星（love引用） |
-| 8(8K) | — | Rahu | [30°-原始度数] | 仅8K体系参与排序 |
+| (8K参考) | — | Rahu | [30°-原始度数] | 仅8K体系参与，非主表 |
 
-> 8K体系（主表）：Sun~Saturn+Rahu 共 8 颗，按宫内度数降序排列
->   Rahu度数 = 30° - 原始度数，参与排序产生 PiK（第8 Karaka）
-> 7K体系（参考）：Sun~Saturn 共 7 颗，不含Rahu
-> 8K 为主表，7K 仅用于 DK 争议比对（当7K和8K的DK不一致时）
+> **7K体系（主表 / KN Rao）**：Sun~Saturn 共 7 颗，按宫内度数降序
+> 8K体系（参考 / Sanjay Rath）：加入Rahu（度数=30°-原始度数），产生 PiK
+> DK以7K为准，8K仅标注参考
 
-### DK争议
+### DK (配偶指示星)
 ```
-7K体系 DK = [planet]
-8K体系 DK = [planet]
-状态: [一致 / 不一致 → 分析时弱化DK，以宫位结构为主]
+DK = [planet]（7K主用）
+8K参考 DK = [planet]
 ```
-> 下游消费：vedic-love 的配偶画像分析（DK星座/落宫/D9落点）
-> 不一致时：love 模块以 7 宫主+Venus 为主，DK 降为辅助参考
+> 下游消费：vedic-love 直接使用7K DK进行配偶画像分析
+> 8K DK仅在婚姻专题中作为补充参考
 
 ### Jaimini 特殊点
 | 点位 | 星座 | 宫位(从Lagna数) | 说明 |
