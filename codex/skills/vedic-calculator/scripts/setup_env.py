@@ -8,7 +8,7 @@ setup_env.py — vedic-calculator 环境自动搭建脚本
   python setup_env.py --target /path/to/dir   # 指定 venv 位置
 
 安装顺序（关键！）：
-  1. pysweph>=2.10.3.5     — 提供 swisseph module（社区活跃 fork，有 cp38~cp313 wheel）
+  1. pysweph>=2.10.3.5     — 提供 swisseph module（社区活跃 fork）
   2. PyJHora 隐藏依赖       — numpy, geocoder, geopy, requests, timezonefinder（PyJHora 未声明！）
   3. dashaflow>=0.3 --no-deps  — 跳过其对已停更的 pyswisseph 的声明依赖
   4. PyJHora==4.8.6        — SAV/BAV + Shadbala + 分盘
@@ -40,7 +40,7 @@ REQUIRED_PACKAGES = [
     ("PyJHora", "==4.8.6", []),                        # 10. SAV/BAV + Shadbala + 分盘
 ]
 
-MIN_PYTHON = (3, 8)
+MIN_PYTHON = (3, 10)
 MAX_PYTHON = (3, 13)
 VENV_DIR_NAME = "venv"
 
@@ -53,7 +53,7 @@ def log(msg, level="INFO"):
 
 
 def find_python():
-    """找到一个 3.8~3.13 的 Python 解释器"""
+    """找到一个 3.10~3.13 的 Python 解释器（推荐 3.12）"""
     # 1. 当前 Python 是否合格
     v = sys.version_info
     if MIN_PYTHON <= (v.major, v.minor) <= MAX_PYTHON:
