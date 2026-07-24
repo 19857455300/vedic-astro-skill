@@ -59,6 +59,9 @@ git clone https://github.com/CNWU16/vedic-astro-skills.git
 cp -r vedic-astro-skills/claude-code/skills/vedic-* ~/.claude/skills/
 ```
 
+> Claude Code 只安装 `skills/vedic-*`。仓库不再提供重复维护的
+> `.claude/commands` 全量副本，以 `SKILL.md` 为唯一工作流来源。
+
 </details>
 
 <details>
@@ -158,7 +161,7 @@ Chart file (PDF/image/text)      Birth info (date+time+place)
 | 🔬 **core** | P1-P12行星审计 + 宫位诊断 + 十大板块 / Planet audit + life summary | "开始分析" "帮我分析" "星盘审计" |
 | 💼 **career** | 4Phase职业蓝图 / Career blueprint | "分析事业" "职业分析" |
 | 💘 **love** | 3Step恋爱时机分析 / Love timing analysis | "分析感情" "恋爱运势" "桃花时机" |
-| 📐 **rectifier** | 5事件逆推出生时间 ±5min / Birth time rectification | "校准时间" "时间矫正" |
+| 📐 **rectifier** | ≥5件重大事件 + 结构证据校准出生时间，目标精度 ±5min / Birth time rectification | "校准时间" "时间矫正" |
 | 💞 **synastry** | 双人合盘：跨盘叠盘 + 六维矩阵关系分析 / Two-person synastry | "合盘" "两个人合不合" "婚配" "合作搭档" |
 | 🔮 **prashna** | 卜卦/时盘：提问时刻起盘答一事，不需本命（独立生态位）/ Prashna horary | "卜卦" "占问" "起一卦" "时盘" "即时盘" |
 
@@ -310,9 +313,11 @@ Compares two charts: a neutral scan first, then a five-layer analysis under one 
 
 ### 📐 vedic-rectifier — 时间校准 / Time Rectification
 
-5个人生重大事件逆推出生时间，精度 ±5分钟。不强制改时间——用户确认后才更新。
+使用至少5件重大事件，并结合个人特质等结构证据校准出生时间，按分层候选与验证门推进，目标精度
+±5分钟。不强制改时间——用户确认后才更新。
 
-5 major life events to reverse-engineer birth time to ±5 min accuracy. Never forces a time change.
+Uses at least five major events, together with structural evidence such as personal traits, to rectify birth time through staged
+candidate and validation gates, targeting ±5-minute precision. Never forces a time change.
 
 ---
 
@@ -325,6 +330,15 @@ Standalone module with no natal chart required. Its default layer is rooted in *
 Tajika 十六 Yoga 是默认关闭的过程副层；KP 是默认关闭、必须由用户亲给 1–249 数字的独立栈。两者拥有独立文件、判据和人话判读，不与标准层拼票。已实现路径可以测试使用，但在出版例盘门全部闭合前继续明确标为实验候选；标准层目前也不提供生产级事件日期。
 
 The optional Tajika sixteen-yoga overlay and the separate KP 1–249 stack are off by default, file-isolated, and never vote with the standard judgment. KP requires a user-supplied number. Implemented paths are usable for testing, while both optional stacks remain explicitly experimental until their published-example gates are complete; the standard layer currently does not claim production-grade event dates.
+
+KP 当前的恋情公式只回答“双方是否建立明确确认并持续推进的恋爱关系”。仅恢复
+联系、互动回暖、恢复暧昧或秘密心意在起盘前失败关闭；这表示当前没有已核证公式，
+不表示现实事件不会发生。
+
+The current KP romance formula only answers whether a mutually acknowledged, continuing
+relationship will materialize. Recontact, warmer interaction, renewed ambiguity/flirting, and
+private feelings fail closed before casting; unsupported means no validated formula, not denial
+of the real-world event.
 
 ---
 
@@ -364,7 +378,6 @@ vedic-astro-skills/
 │   │   └── SKILL.md                 # 恋爱分析
 │   ├── vedic-synastry/              # 合盘
 │   │   ├── SKILL.md                 # 合盘引擎指令（五层 + QA）
-│   │   ├── USAGE.md                 # 使用指南
 │   │   ├── resources/               # 跨盘相位/月宿/性质盲扫/六维矩阵规则
 │   │   └── scripts/
 │   │       ├── build_synastry_data.py    # 跨盘计算引擎（纯标准库）
@@ -388,8 +401,23 @@ vedic-astro-skills/
 │           ├── build_kp_horary.py
 │           └── calc_optional_kp.py      # KP 1–249 独立栈（默认关）
 ├── claude-code/skills/              # Claude Code 版本 (同上)
-└── codex/skills/                    # Codex 原生版本（含 agents/openai.yaml）
+├── codex/skills/                    # Codex 原生版本（含 agents/openai.yaml）
+└── scripts/check_skill_parity.py    # 三端逐文件一致性与遗留副本检查
 ```
+
+---
+
+### 三端一致性检查 / Cross-surface parity check
+
+`antigravity/skills/` 是发布内容基准；Claude Code 必须逐文件一致，Codex 只允许额外
+包含每个 Skill 的 `agents/openai.yaml`。修改或同步 Skill 后运行：
+
+```bash
+python scripts/check_skill_parity.py
+```
+
+The check compares all eight skills, resources, scripts, requirements, and binary ephemeris
+assets. It also rejects the removed legacy Claude commands and root-level report builder.
 
 ---
 
@@ -407,7 +435,7 @@ vedic-astro-skills/
 | **容错策略 Error Handling** | Fail-fast（不给错误结果）+ `setup_env.py` 自动修复 |
 | **校验 Validation** | 16条数学校验（SAV=337、BAV行和常量、Ra-Ke对冲等）|
 | **反偏见 Anti-bias** | 正反双审 — 禁止只挑用户想听的数据 |
-| **执行引擎 Execution** | 三阶段独立思考链（防超长思考崩溃）|
+| **执行引擎 Execution** | 各 Skill 独立阶段门控 + 文件化中间产物 |
 | **跨平台 Cross-platform** | Windows / macOS / Linux，Python 3.8~3.13 |
 
 ---

@@ -20,6 +20,8 @@ All notable changes to this project will be documented in this file.
   跨栈比较只并列、不投票。
 - Tajika 副层实现十六 Yoga、Kamboola 16 档、Shunyamarga、Radda／Durapha
   优先级与受限 timing 候选；出版例盘套件完成前继续标为实验候选。
+- 修正 Tajika 接触容许度：按较快星自身的 deeptamsha 判断，不再取两星平均值；
+  加入原典 14° 差值对应 `14 × 12 = 168` 天的出版正例边界测试。
 - KP 独立栈实现用户给号 1–249、Krishnamurti ayanamsa、Placidus cusps、
   A/B/C/D significator chain、Ruling Planets、四级 period 与 timing 失败关闭。
   未核证的 node 接触代理、婚姻重聚语义和出版 timing 套件不作推断，整栈继续标为
@@ -30,7 +32,21 @@ All notable changes to this project will be documented in this file.
   cusp 与精确对冲的第 7 cusp 回写为定义值；249 个号码现可逐一完整起盘。
 - KP 判读单改为直接回答“当前偏向／关键理由／现实含义／能否给时间”；真正
   `mixed` 明确说明缺少来源支持的优先裁决规则，不再写成“有机会也有阻力”。
+- 新增 KP 可观察结果范围门：`love-materialization` 只允许“建立明确、双方确认并
+  持续推进的恋爱关系”；仅恢复联系、互动回暖、恢复暧昧或秘密心意在计算前失败
+  关闭，不再被错误提升为高门槛题型。
 - 标准、Tajika、KP 判读单均改为先说人话、后列可回查技术证据。
+
+### 三端同步与遗留清理
+
+- 删除三份 4 月停更的 `.claude/commands/vedic-{core,career,love}.md` 全量副本；
+  Claude Code 以 `claude-code/skills/*/SKILL.md` 为唯一工作流来源。
+- 删除仓库根目录停更的 `scripts/report_builder.py`；三端继续使用各自
+  `vedic-core/scripts/report_builder.py` 的一致正式版本。
+- 新增 `scripts/check_skill_parity.py`，逐文件校验八个 Skill 在 Antigravity、
+  Claude Code、Codex 三端的一致性，并验证 Codex 专属 `agents/openai.yaml`。
+- 修正 README 中不存在的 synastry `USAGE.md`、旧“三阶段执行引擎”描述与
+  rectifier 最低证据数量表述。
 
 ---
 
