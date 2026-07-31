@@ -1,8 +1,10 @@
 """
-vedic-calculator v0.5 - PyJHora 精确计算引擎
+vedic-calculator v0.7 - PyJHora 精确计算引擎
 基于 pysweph 天文核心 + PyJHora 精确算法（含 9 项 Shadbala bug 修正）
 输出完整的 structured_data 所需数据
 
+v0.7: 增加 D1/D9/D10/D4/D5 报时不确定区间边界审计，区分“算得出”与“输入稳定”
+v0.6: Vimsottari 增加完整 Pratyantardasha 三级运，月级分析不再借用 AD 假精度
 v0.5: 移除所有 dashaflow fallback（错误结果比无结果更糟），fail-fast
 v0.4: Dasha 接入 PyJHora（≤2天）
 v0.3: SAV/Shadbala fallback 显式 WARNING
@@ -474,62 +476,16 @@ def calc_parivartana(house_lords, planets):
     return pairs
 
 def calc_vimsottari_dasha(moon_lon, birth_year, birth_month, birth_day, birth_hour, birth_minute):
-    """Calculate Vimsottari Dasha periods"""
-    nak = get_nakshatra(moon_lon)
-    nak_lord = nak['lord']
-    start_idx = DASHA_ORDER.index(nak_lord)
-    
-    nak_span = 360/27
-    elapsed_in_nak = moon_lon % nak_span
-    remaining_fraction = 1 - (elapsed_in_nak / nak_span)
-    
-    birth_dt = datetime(birth_year, birth_month, birth_day, birth_hour, birth_minute)
-    dashas = []
-    # 第一个大运起始 = 出生日 - 已过大运年数（回溯到出生前）
-    first_planet_years = DASHA_YEARS[DASHA_ORDER[start_idx]]
-    elapsed_years = first_planet_years * (1 - remaining_fraction)
-    current_dt = birth_dt - timedelta(days=elapsed_years * 365.25)
-    
-    for i in range(9):
-        idx = (start_idx + i) % 9
-        planet = DASHA_ORDER[idx]
-        years = DASHA_YEARS[planet]
-        days = years * 365.25
-        end_dt = current_dt + timedelta(days=days)
-        
-        # Mark current
-        now = datetime.now()
-        is_current = current_dt <= now <= end_dt
-        
-        # Antardasha子期计算
-        antardashas = []
-        ad_start = current_dt
-        for j in range(9):
-            ad_idx = (idx + j) % 9
-            ad_planet = DASHA_ORDER[ad_idx]
-            ad_years = years * DASHA_YEARS[ad_planet] / 120
-            ad_days = ad_years * 365.25
-            ad_end = ad_start + timedelta(days=ad_days)
-            ad_is_current = ad_start <= now <= ad_end
-            antardashas.append({
-                'planet': ad_planet,
-                'start': ad_start.strftime('%Y-%m-%d'),
-                'end': ad_end.strftime('%Y-%m-%d'),
-                'is_current': ad_is_current
-            })
-            ad_start = ad_end
-        
-        dashas.append({
-            'planet': planet,
-            'start': current_dt.strftime('%Y-%m'),
-            'end': end_dt.strftime('%Y-%m'),
-            'years': round(years, 1),
-            'is_current': is_current,
-            'antardashas': antardashas
-        })
-        current_dt = end_dt
-    
-    return dashas
+    """Deprecated approximate entry point; Vimsottari must come from PyJHora.
+
+    Keeping a fail-fast shim prevents older callers from silently reviving the former
+    365.25-day MD/AD approximation, which cannot supply validated PD boundaries.
+    Use ``calculate_full_chart``; it calls ``dasha_pyjhora.calculate_dasha_fixed``.
+    """
+    raise RuntimeError(
+        "calc_vimsottari_dasha is disabled: use calculate_full_chart() so "
+        "PyJHora supplies validated MD/AD/PD boundaries"
+    )
 
 def calc_special_points(lagna, planets):
     """Calculate AL, UL and other special Jaimini points.
@@ -626,9 +582,92 @@ def calc_transits(lagna_sign_idx, moon_sign_idx):
     
     return transits
 
+# === 出生时刻边界审计 ===
+
+def calc_divisional_boundary_audit(year, month, day, hour, minute, lat, lon,
+                                    tz_str="Asia/Kolkata", uncertainty_minutes=1):
+    """逐分钟扫描报时不确定区间内的 D1 与主要分盘 Lagna。
+
+    “直接计算成功”只证明给定时刻的数学结果可复现；如果同一报时允许的分钟区间
+    跨过分盘 Lagna 换座点，分盘宫位、分盘宫主和所有下游解释必须按条件分支处理。
+    """
+    if _div_pyjhora is None:
+        return {
+            'status': 'unavailable',
+            'reason': 'PyJHora divisional module unavailable',
+        }
+
+    try:
+        span = max(0, int(uncertainty_minutes or 0))
+    except (TypeError, ValueError):
+        span = 1
+
+    base_local = datetime(year, month, day, hour, minute)
+    factors = (4, 5, 9, 10)
+    samples = []
+
+    for offset in range(-span, span + 1):
+        local_dt = base_local + timedelta(minutes=offset)
+        tz = pytz.timezone(tz_str)
+        localized = _localize_strict(tz, local_dt)
+        tz_offset = localized.utcoffset().total_seconds() / 3600.0
+        jd = to_jd(local_dt.year, local_dt.month, local_dt.day,
+                   local_dt.hour, local_dt.minute, tz_str)
+        d1_lagna = calc_lagna(jd, lat, lon)['sign']
+        charts = _div_pyjhora(
+            local_dt.year, local_dt.month, local_dt.day,
+            local_dt.hour, local_dt.minute, lat, lon, tz_offset,
+            chart_factors=factors,
+        )
+        row = {'offset_minutes': offset, 'D1': d1_lagna}
+        for factor in factors:
+            key = f'D{factor}'
+            chart_data = charts.get(key, {})
+            if 'error' in chart_data or 'Lagna' not in chart_data:
+                row[key] = None
+            else:
+                row[key] = chart_data['Lagna']['sign']
+        samples.append(row)
+
+    result = {}
+    for key in ('D1', 'D9', 'D10', 'D4', 'D5'):
+        observed = []
+        transitions = []
+        previous = None
+        for row in samples:
+            sign = row.get(key)
+            if sign is not None and sign not in observed:
+                observed.append(sign)
+            if previous is not None and sign is not None and sign != previous:
+                transitions.append({
+                    'offset_minutes': row['offset_minutes'],
+                    'from': previous,
+                    'to': sign,
+                })
+            if sign is not None:
+                previous = sign
+        base_sign = next((row.get(key) for row in samples
+                          if row['offset_minutes'] == 0), None)
+        result[key] = {
+            'base_sign': base_sign,
+            'stable': len(observed) == 1 and bool(observed),
+            'observed_signs': observed,
+            'transitions': transitions,
+        }
+
+    return {
+        'status': 'ok',
+        'uncertainty_minutes': span,
+        'sample_step_minutes': 1,
+        'charts': result,
+        'samples': samples,
+    }
+
+
 # === 主计算函数 ===
 
-def calculate_full_chart(year, month, day, hour, minute, lat, lon, tz_str="Asia/Kolkata"):
+def calculate_full_chart(year, month, day, hour, minute, lat, lon,
+                         tz_str="Asia/Kolkata", uncertainty_minutes=1):
     """计算完整星盘数据"""
     jd = to_jd(year, month, day, hour, minute, tz_str)
     ayanamsa = swe.get_ayanamsa_ut(jd)
@@ -704,6 +743,11 @@ def calculate_full_chart(year, month, day, hour, minute, lat, lon, tz_str="Asia/
         d5 = _legacy_fmt('D5')
     else:
         d9, d10, d4, d5 = {}, {}, {}, {}
+
+    divisional_boundary_audit = calc_divisional_boundary_audit(
+        year, month, day, hour, minute, lat, lon, tz_str,
+        uncertainty_minutes=uncertainty_minutes,
+    )
     
     # Vargottama check
     vargottama = {}
@@ -872,7 +916,7 @@ def calculate_full_chart(year, month, day, hour, minute, lat, lon, tz_str="Asia/
     parivartana = calc_parivartana(house_lords, planets)  # 互溶对（两宫主互换落座，格局"互溶"唯一口径）
     yoga_prescan = calc_yoga_prescan(lagna['sign_idx'], planets, house_lords, graha_drishti, mutual_drishti, parivartana)  # 全11格局结构预扫（禁自推/越宫）
 
-    # 11. Vimsottari Dasha (PyJHora — no fallback)
+    # 11. Vimsottari Dasha MD/AD/PD (PyJHora — no fallback)
     dashas = _dasha_pyjhora(year, month, day, hour, minute, lat, lon, _tz_offset)
     
     # 12. Shadbala (PyJHora + 9 bug fixes — no fallback)
@@ -943,6 +987,7 @@ def calculate_full_chart(year, month, day, hour, minute, lat, lon, tz_str="Asia/
         'bav': ashtak['bhinnashtakavarga'],
         'd9': d9, 'd10': d10, 'd4': d4, 'd5': d5,
         'divisional_charts': divisional_charts,
+        'divisional_boundary_audit': divisional_boundary_audit,
         'vargottama': vargottama,
         'dignity': dignity_data,
         'd9_dignity': d9_dignity,

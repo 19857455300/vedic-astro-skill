@@ -130,7 +130,10 @@ chart = calculate_full_chart(
     year=YYYY, month=MM, day=DD, 
     hour=HH, minute=MM,
     lat=LAT, lon=LON, 
-    tz_str="TIMEZONE"
+    tz_str="TIMEZONE",
+    # 按“有效精度”传入：出生证分钟记录至少审计±1；家人明确记忆通常5；
+    # ±15分钟报时传15。它审计输入稳定性，不改变报时本身。
+    uncertainty_minutes=1
 )
 
 # 计算当前过运
@@ -186,13 +189,30 @@ assert sav_total == 337, f"SAV FAILED: {sav_total} != 337"
 2. 行星完整性 = 10颗 ✅
 3. Ra-Ke差180° ✅
 4. Lagna星座是否合理
+5. Vimsottari = 9段MD、81段AD、729段PD，且每层 `[start,end)` 无缝连续 ✅
+6. 分盘边界审计：读取`分盘可信度声明`，确认D1/D9/D10/D4/D5在有效精度
+   区间内是“稳定”还是“边界敏感”。禁止因“出生证”或“直接计算”自动把全部
+   分盘写成可信；二者分别表示记录来源和数学可复现性，不表示输入扰动下稳定。
+
+分盘消费硬约束：
+- `✅ 审计区间内稳定`：对应分盘可按当前Lagna正常使用；
+- `⚠️ 边界敏感`：保留给定时刻的计算表，但分盘宫位、内部宫主和所有下游形态
+  结论必须条件化或降级；
+- 旧structured_data缺少边界审计：标“未验证”，不得补写成高可信；
+- 出生证未写明记录的是啼哭、分娩、断脐还是事后录入时，时刻语义仍未知。
+
+时间分辨率硬约束：
+- 只读MD时，只输出背景趋势；
+- 读到MD×AD时，最多输出阶段窗口；
+- 用户要求月份或窄于AD的窗口时，必须读取MD×AD×PD；
+- PD缺失或校验失败时停止月级判定，禁止用AD或365.25天近似制造月级精度。
 
 ### Step 5: 模式选择
 
 structured_data.md 生成后，向用户输出：
 
 ```
-✅ 排盘完成！所有数据已生成（行星/分盘/SAV/Dasha+小运/宫主表/尊贵度/过运…）
+✅ 排盘完成！所有数据已生成（行星/分盘/SAV/Dasha大运+小运+三级运/宫主表/尊贵度/过运…）
 
 📊 Shadbala 精度说明：
    structured_data以calc为主数据源。
@@ -277,7 +297,21 @@ chart = {
             'planet': 'Jupiter', 'start': '1998-02', 'end': '2014-02',
             'years': 16, 'is_current': False,
             'antardashas': [
-                {'planet': 'Jupiter', 'start': '1998-02-11', 'end': '2000-04-01', 'is_current': False},
+                {
+                    'planet': 'Jupiter',
+                    'start': '1998-02-11', 'end': '2000-04-01',
+                    'start_time': '1998-02-11 12:34', 'end_time': '2000-04-01 08:20',
+                    'is_current': False,
+                    'pratyantardashas': [
+                        {
+                            'planet': 'Jupiter',
+                            'start': '1998-02-11', 'end': '1998-05-26',
+                            'start_time': '1998-02-11 12:34', 'end_time': '1998-05-26 04:15',
+                            'is_current': False
+                        },
+                        # ... 每个AD共9个PD
+                    ]
+                },
                 # ... 9个小运
             ]
         },
@@ -317,12 +351,12 @@ chart = {
 | Shadbala | 7颗行星的Rupas/百分比/排名/强弱/Ishta/Kashta |
 | SAV | 原始值(按星座) + 宫位映射(按宫位) |
 | BAV | 7颗行星×12星座矩阵 |
-| Vimsottari Dasha | 9段大运 + 当前/下一大运Antardasha |
+| Vimsottari Dasha | 9段大运 + 81段Antardasha + 729段Pratyantardasha；当前MD/AD/PD |
 | 特殊点位 | AL(Arudha Lagna) + UL(Upapada Lagna) |
 | Compound Dignity | Panchadha Maitri（旺/入庙/陷直接确定） |
 | Graha Drishti | 吠陀行星相位（宫位照射：星→7th 等；西占 orb 相位表已废弃删除） |
 | 宫主表 | 12宫完整 |
-| 分盘 | D9/D10/D4/D5 + Vargottama |
+| 分盘 | D9/D10/D4/D5 + Vargottama + 报时不确定区间边界审计 |
 | 校验 | 12项自动校验 |
 | 过运 | 慢行星过运 + Sade Sati + 双过运 |
 
@@ -332,9 +366,11 @@ chart = {
 - Node模式: **Mean Node**
 - 天文核心: pysweph (Swiss Ephemeris C binding)
 - SAV/BAV: **PyJHora 原生** (ashtakavarga_pyjhora.py)
-- Dasha: **PyJHora 原生** (dasha_pyjhora.py)
+- Dasha: **PyJHora 原生 MD/AD/PD** (dasha_pyjhora.py)；区间统一按`[start,end)`，禁止自行近似补三级运
 - Shadbala: **PyJHora + 9项修正** (shadbala_pyjhora.py)
 - 分盘: **PyJHora 原生** (divisional_pyjhora.py) — 15张 D1~D60
+- 分盘稳定性: 在调用方传入的`uncertainty_minutes`内逐分钟重算D1/D9/D10/D4/D5
+  Lagna；数学正确性与输入稳定性分别报告
 - Dignity: dashaflow + 旺/入庙/陷前置判断
 - Chara Karakas: 7K（KN Rao）+ 8K参考
 - 容错策略: **fail-fast**（缺依赖直接报错，不给错误结果）

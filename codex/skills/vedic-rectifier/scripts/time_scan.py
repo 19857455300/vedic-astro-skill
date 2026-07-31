@@ -16,6 +16,7 @@ Vedic Rectifier — Time Scanner (swisseph版)
 
 import swisseph as swe
 import argparse
+import calendar
 import sys
 import os
 from datetime import datetime, timedelta
@@ -209,7 +210,7 @@ def print_results(results, date_str, time_str, lat, lon):
         print(f"{r['delta']:+4d}min | {r['asc_deg']:8.2f}° | {r['sign']:>4}{r['sign_cn']} | {r['deg_in_sign']:6.2f}° | {r['d9']:>4} | {r['d10']:>4} |{marker_str}{is_base}")
 
 
-def save_results(results, date_str, time_str, lat, lon, filepath, dasha_ep=None):
+def save_results(results, date_str, time_str, lat, lon, filepath, dasha_ep=None, event_dates=None):
     """保存为Markdown表格（含两点法 Dasha——3c 段内定位的硬腿数据源，必须落盘）"""
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(f"# 时间扫描结果\n\n")
@@ -239,6 +240,11 @@ def save_results(results, date_str, time_str, lat, lon, filepath, dasha_ep=None)
                 f.write(f"\n### {label}\n")
                 f.write(_fmt_dasha(dashas) + "\n")
 
+        if event_dates:
+            f.write("\n## 事件日期 MD/AD/PD 差异审计\n")
+            f.write("> 只用于事件时间归属与候选差异审计；不改写标准评分，不参与出生分钟夹逼。\n\n")
+            f.write(_fmt_event_date_audit(dasha_ep or {}, event_dates) + "\n")
+
     print(f"\n已保存: {filepath}")
 
 
@@ -256,7 +262,55 @@ def _fmt_dasha(dashas):
     return '\n'.join(lines)
 
 
-def print_dasha_endpoints(dasha_ep):
+def _parse_period_date(value):
+    """解析 Dasha 边界日期；计算器的 AD/PD 使用 YYYY-MM-DD。"""
+    return datetime.strptime(value[:10], '%Y-%m-%d').date()
+
+
+def _event_probe_dates(value):
+    """事件精确到日时只查该日；只到月时查月首+月末，防止隐藏月内PD边界。"""
+    value = value.strip()
+    if len(value) == 10:
+        return [datetime.strptime(value, '%Y-%m-%d').date()]
+    if len(value) == 7:
+        year, month = map(int, value.split('-'))
+        last = calendar.monthrange(year, month)[1]
+        return [datetime(year, month, 1).date(), datetime(year, month, last).date()]
+    raise ValueError(f'事件日期必须是 YYYY-MM-DD 或 YYYY-MM：{value}')
+
+
+def _active_triplet(dashas, probe_date):
+    """在原生 [start,end) PD 时间线中查找某日的 MD/AD/PD。"""
+    for md in dashas or []:
+        for ad in md.get('antardashas', []):
+            for pd in ad.get('pratyantardashas', []):
+                if _parse_period_date(pd['start']) <= probe_date < _parse_period_date(pd['end']):
+                    return f"{md['planet']}/{ad['planet']}/{pd['planet']}"
+    return '未找到（日期超出时间线或PD缺失）'
+
+
+def _fmt_event_date_audit(dasha_ep, event_dates):
+    if not dasha_ep or '_error' in dasha_ep:
+        return '⚠️ PD_AUDIT_UNAVAILABLE：两点法 Dasha 不可用，禁止伪造PD归属。'
+    labels = list(dasha_ep.keys())
+    if len(labels) < 2:
+        return '⚠️ PD_AUDIT_UNAVAILABLE：缺少段首/段末两条时间线。'
+    rows = [
+        '| 事件日期 | 段首MD/AD/PD | 段末MD/AD/PD | 稳定性 |',
+        '|----------|----------------|----------------|--------|',
+    ]
+    for raw in event_dates:
+        probes = _event_probe_dates(raw)
+        endpoint_values = []
+        for label in labels[:2]:
+            values = [_active_triplet(dasha_ep[label], probe) for probe in probes]
+            endpoint_values.append(values[0] if len(set(values)) == 1 else f"{values[0]} → {values[-1]}")
+        stable = '整段一致' if endpoint_values[0] == endpoint_values[1] and '→' not in endpoint_values[0] else '边界敏感/候选有差'
+        rows.append(f"| {raw} | {endpoint_values[0]} | {endpoint_values[1]} | {stable} |")
+    return '\n'.join(rows)
+
+
+def print_dasha_endpoints(dasha_ep, event_dates=None):
     """输出段首/段末两点 Dasha——两点法反推事件子窗的数据源"""
     print("\n## 两点法 Dasha（段首 / 段末；AD 日期=本地时区，与用户本地事件对齐）")
     print("   用法：对每个事件日期，在段首和段末两条时间线里各查它落哪个 MD/AD →")
@@ -272,6 +326,9 @@ def print_dasha_endpoints(dasha_ep):
     for label, dashas in dasha_ep.items():
         print(f"\n### {label}")
         print(_fmt_dasha(dashas))
+    if event_dates:
+        print("\n## 事件日期 MD/AD/PD 差异审计")
+        print(_fmt_event_date_audit(dasha_ep, event_dates))
 
 
 def main():
@@ -282,16 +339,23 @@ def main():
     parser.add_argument('--lon', required=True, type=float, help='出生地经度')
     parser.add_argument('--range', type=int, default=30, help='扫描范围±分钟 (默认30)')
     parser.add_argument('--tz', type=float, default=0.0, help='出生地时区偏移(小时,中国=8)——两点法Dasha的AD日期本地对齐用')
+    parser.add_argument('--event-date', action='append', default=[],
+                        help='事件日期 YYYY-MM-DD 或 YYYY-MM；可重复。只做两点MD/AD/PD差异审计，不定位出生分钟')
     parser.add_argument('--save', type=str, help='保存结果到文件路径')
 
     args = parser.parse_args()
+    for raw_event_date in args.event_date:
+        try:
+            _event_probe_dates(raw_event_date)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     results, dasha_ep = scan(args.date, args.time, args.lat, args.lon, args.range, args.tz)
     print_results(results, args.date, args.time, args.lat, args.lon)
-    print_dasha_endpoints(dasha_ep)
+    print_dasha_endpoints(dasha_ep, args.event_date)
 
     if args.save:
-        save_results(results, args.date, args.time, args.lat, args.lon, args.save, dasha_ep)
+        save_results(results, args.date, args.time, args.lat, args.lon, args.save, dasha_ep, args.event_date)
 
     # 输出变化点摘要
     print("\n## 关键变化点（Lagna/D9换座 + Moon跨Nak）")

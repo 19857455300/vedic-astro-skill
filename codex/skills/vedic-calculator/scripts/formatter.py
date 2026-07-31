@@ -166,6 +166,8 @@ def format_structured_data(chart, transit_data, meta, user_info):
     
     # Dasha
     lines.append("### Vimsottari Dasha")
+    lines.append("> 日期边界由 PyJHora 原生 MD/AD/PD 计算；全部区间按 `[起始, 结束)` 解释。")
+    lines.append("> 月级问题必须读取 Pratyantardasha（三级运）；只有 MD/AD 时只能输出背景或阶段窗口。\n")
     lines.append("| 大运 | 行星 | 起始 | 结束 | 年数 |")
     lines.append("|------|------|------|------|------|")
     current_dasha = None
@@ -213,6 +215,20 @@ def format_structured_data(chart, transit_data, meta, user_info):
                 marker = ' ← 当前' if ad.get('is_current') else ''
                 lines.append(f"| {d['planet']}-{ad['planet']} | {ad['start']} | {ad['end']} |{marker}")
             lines.append("")
+
+    # Pratyantardasha — 完整输出全部 MD×AD×PD，供月级问题与交接事件簇审计。
+    for d in chart['dashas']:
+        if not d.get('antardashas'):
+            continue
+        lines.append(f"### {d['planet']}大运 Pratyantardasha（三级运）")
+        lines.append("| 三级运 | 起始 | 结束 |")
+        lines.append("|--------|------|------|")
+        for ad in d['antardashas']:
+            for pd in ad.get('pratyantardashas', []):
+                marker = ' ← 当前' if pd.get('is_current') else ''
+                path = f"{d['planet']}-{ad['planet']}-{pd['planet']}"
+                lines.append(f"| {path} | {pd['start']} | {pd['end']} |{marker}")
+        lines.append("")
     
     # 当前状态汇总
     if current_dasha:
@@ -227,6 +243,15 @@ def format_structured_data(chart, transit_data, meta, user_info):
                     break
         if current_ad_info:
             lines.append(f"Antardasha: {current_dasha['planet']}-{current_ad_info['planet']} ({current_ad_info['start']} ~ {current_ad_info['end']})")
+            current_pd_info = next(
+                (pd for pd in current_ad_info.get('pratyantardashas', []) if pd.get('is_current')),
+                None,
+            )
+            if current_pd_info:
+                lines.append(
+                    f"Pratyantardasha: {current_dasha['planet']}-{current_ad_info['planet']}-"
+                    f"{current_pd_info['planet']} ({current_pd_info['start']} ~ {current_pd_info['end']})"
+                )
         lines.append("```\n")
     
 
@@ -344,12 +369,28 @@ def format_structured_data(chart, transit_data, meta, user_info):
     lines.append("## 分盘数据\n")
     lines.append("### 分盘可信度声明")
     lines.append("```")
-    lines.append("D1  ✅ 可信（直接计算）")
-    lines.append("D9  ✅ 可信（直接计算）")
-    lines.append("D10 ✅ 可信（直接计算）")
-    lines.append("D4  ✅ 可信（直接计算）")
-    lines.append("D5  ✅ 可信（直接计算）")
+    boundary_audit = chart.get('divisional_boundary_audit', {})
+    if boundary_audit.get('status') == 'ok':
+        span = boundary_audit.get('uncertainty_minutes', 0)
+        lines.append(f"边界审计范围: 报时前后±{span}分钟，逐分钟扫描")
+        audited = boundary_audit.get('charts', {})
+        for key in ('D1', 'D9', 'D10', 'D4', 'D5'):
+            item = audited.get(key, {})
+            base = item.get('base_sign', '—')
+            observed = '→'.join(item.get('observed_signs', [])) or '未取得'
+            if item.get('stable'):
+                lines.append(f"{key:<3} ✅ 审计区间内稳定（Lagna={base}）")
+            else:
+                lines.append(f"{key:<3} ⚠️ 边界敏感（Lagna={observed}）；宫位/宫主结论只可条件使用")
+    else:
+        lines.append("D1  ⚠️ 已直接计算，但未完成报时不确定区间边界审计")
+        lines.append("D9  ⚠️ 已直接计算；分盘输入稳定性未验证")
+        lines.append("D10 ⚠️ 已直接计算；分盘输入稳定性未验证")
+        lines.append("D4  ⚠️ 已直接计算；分盘输入稳定性未验证")
+        lines.append("D5  ⚠️ 已直接计算；分盘输入稳定性未验证")
     lines.append("```\n")
+    lines.append("> “直接计算”只说明给定时刻的数学结果可复现；出生证/医院记录的来源可靠度，不等于分盘在报时误差内稳定。边界敏感分盘的星座数据可保留，但以分盘Lagna起宫的宫位、宫主和下游事件形态必须降级或分支。")
+    lines.append("")
     
     # D9
     lines.append("### D9 Navamsha")
@@ -464,6 +505,27 @@ def format_structured_data(chart, transit_data, meta, user_info):
     # 盈亏月
     phase = chart['moon_phase']
     phase_str = f"{'盈月' if phase['waxing'] else '亏月'} (距Sun {phase['sun_moon_diff']}°)"
+
+    # Vimsottari层级与边界连续性
+    md_count = len(chart.get('dashas', []))
+    ad_count = sum(len(md.get('antardashas', [])) for md in chart.get('dashas', []))
+    pd_count = sum(
+        len(ad.get('pratyantardashas', []))
+        for md in chart.get('dashas', [])
+        for ad in md.get('antardashas', [])
+    )
+    dasha_continuous = True
+    for md in chart.get('dashas', []):
+        ads = md.get('antardashas', [])
+        dasha_continuous &= all(ads[i]['end_time'] == ads[i + 1]['start_time'] for i in range(len(ads) - 1))
+        for ad in ads:
+            pds = ad.get('pratyantardashas', [])
+            dasha_continuous &= bool(pds)
+            dasha_continuous &= all(pds[i]['end_time'] == pds[i + 1]['start_time'] for i in range(len(pds) - 1))
+            if pds:
+                dasha_continuous &= pds[0]['start_time'] == ad['start_time']
+                dasha_continuous &= pds[-1]['end_time'] == ad['end_time']
+    dasha_ok = '✅' if (md_count, ad_count, pd_count) == (9, 81, 729) and dasha_continuous else '❌'
     
     lines.append("```")
     lines.append(f" 1. SAV={sav_total}          {sav_ok}")
@@ -477,7 +539,7 @@ def format_structured_data(chart, transit_data, meta, user_info):
     lines.append(f" 7c. 盈月/亏月       {phase_str}")
     lines.append(f" 8. Nakshatra↔度数   ✅")
     lines.append(f" 9. Chara Karaka排序 ✅")
-    lines.append(f"10. Dasha时长常数    ✅")
+    lines.append(f"10. Vimsottari层级   {dasha_ok} MD={md_count}/AD={ad_count}/PD={pd_count} 连续={dasha_continuous}")
     lines.append(f"11. D9公式交叉       ✅（直接计算，无需交叉验证）")
     lines.append(f"12. Ra-Ke分盘校验    ✅（直接计算）")
     lines.append("```\n")
