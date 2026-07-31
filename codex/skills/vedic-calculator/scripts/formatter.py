@@ -515,6 +515,15 @@ def format_structured_data(chart, transit_data, meta, user_info):
         for ad in md.get('antardashas', [])
     )
     dasha_continuous = True
+    all_ads = [
+        ad
+        for md in chart.get('dashas', [])
+        for ad in md.get('antardashas', [])
+    ]
+    dasha_continuous &= all(
+        all_ads[i]['end_time'] == all_ads[i + 1]['start_time']
+        for i in range(len(all_ads) - 1)
+    )
     for md in chart.get('dashas', []):
         ads = md.get('antardashas', [])
         dasha_continuous &= all(ads[i]['end_time'] == ads[i + 1]['start_time'] for i in range(len(ads) - 1))

@@ -50,7 +50,9 @@ def _setup_jhora():
             swe.houses_ex = patched_he
 
 
-def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
+def calculate_dasha_fixed(
+    year, month, day, hour, minute, lat, lon, tz_offset, include_pd=True
+):
     """Calculate Vimsottari Dasha using PyJHora's precise algorithm.
     
     Args:
@@ -58,6 +60,10 @@ def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
         hour, minute: Birth time (local)
         lat, lon: Birth coordinates
         tz_offset: Timezone offset in hours (e.g., 8.0 for Asia/Shanghai)
+        include_pd: Whether to calculate the 729 Pratyantardasha rows. Keep the
+            default ``True`` for canonical chart generation. Endpoint scans that
+            only need MD/AD may set it to ``False`` and request PD later for the
+            specific event windows that require month/day resolution.
     
     Returns:
         List of dasha dicts compatible with engine.py format:
@@ -98,15 +104,17 @@ def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
     md_dict = vimsottari.vimsottari_mahadasa(jd_local, place)
     # md_dict: OrderedDict {planet_id: start_jd}
 
-    # ── 2. Get Antardasha and Pratyantardasha entries ──
+    # ── 2. Get Antardasha and optional Pratyantardasha entries ──
     # Fail fast: silently returning an empty sub-period table would let downstream
     # analysis fabricate month-level precision from MD/AD alone.
     _, ad_entries = vimsottari.get_vimsottari_dhasa_bhukthi(
         jd_local, place, dhasa_level_index=2  # ANTARA level
     )
-    _, pd_entries = vimsottari.get_vimsottari_dhasa_bhukthi(
-        jd_local, place, dhasa_level_index=3  # PRATYANTARA level
-    )
+    pd_entries = []
+    if include_pd:
+        _, pd_entries = vimsottari.get_vimsottari_dhasa_bhukthi(
+            jd_local, place, dhasa_level_index=3  # PRATYANTARA level
+        )
 
     def _entry_datetime(entry_date):
         y, m, d, fractional_hour = entry_date
@@ -135,16 +143,29 @@ def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
         planet = _PLANET_NAMES.get(pid, f'P{pid}')
         years = _DASHA_YEARS.get(planet, 0)
 
-        # Start date
-        sy, sm, sd, sh = swe.revjul(start_jd)
-        start_dt = datetime(int(sy), int(sm), int(sd)) + timedelta(hours=float(sh))
+        ad_list = ad_lookup.get(pid, [])
+        if len(ad_list) != 9:
+            raise RuntimeError(
+                f"PyJHora returned {len(ad_list)} AD rows for {planet}; expected 9"
+            )
+
+        # Use the L2 table as the canonical MD boundary source so the parent MD
+        # and its first/last AD share one exact [start,end) boundary.  PyJHora's
+        # separate L1 and L2 calls can differ by minutes or hours after many
+        # cycles; mixing them creates a false one-day overlap after date-only
+        # formatting even though every individual level is internally valid.
+        start_dt = ad_list[0][1]
         start_str = start_dt.strftime('%Y-%m')
 
-        # End date = next dasha's start, or start + years
+        # End date = next MD's first L2 row, or the final L1 duration fallback.
         if i + 1 < len(md_items):
-            next_jd = list(md_dict.values())[i + 1]
-            ey, em, ed, eh = swe.revjul(next_jd)
-            end_dt = datetime(int(ey), int(em), int(ed)) + timedelta(hours=float(eh))
+            next_pid = md_items[i + 1][0]
+            next_ad_list = ad_lookup.get(next_pid, [])
+            if len(next_ad_list) != 9:
+                raise RuntimeError(
+                    f"PyJHora returned {len(next_ad_list)} AD rows for next MD; expected 9"
+                )
+            end_dt = next_ad_list[0][1]
         else:
             # Last dasha end uses PyJHora's configured dasha-year duration.
             # Do not substitute a civil-year or 365.25 approximation.
@@ -158,11 +179,6 @@ def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
 
         # Build antardashas
         antardashas = []
-        ad_list = ad_lookup.get(pid, [])
-        if len(ad_list) != 9:
-            raise RuntimeError(
-                f"PyJHora returned {len(ad_list)} AD rows for {planet}; expected 9"
-            )
         for j, (ad_id, ad_start_dt) in enumerate(ad_list):
             ad_planet = _PLANET_NAMES.get(ad_id, f'P{ad_id}')
             # End = next antardasha's start
@@ -173,7 +189,7 @@ def calculate_dasha_fixed(year, month, day, hour, minute, lat, lon, tz_offset):
             ad_is_current = ad_start_dt <= now < ad_end_dt
 
             pd_list = pd_lookup.get((pid, ad_id), [])
-            if len(pd_list) != 9:
+            if include_pd and len(pd_list) != 9:
                 raise RuntimeError(
                     f"PyJHora returned {len(pd_list)} PD rows for "
                     f"{planet}-{ad_planet}; expected 9"

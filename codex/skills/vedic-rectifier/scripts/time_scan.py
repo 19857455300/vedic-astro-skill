@@ -6,8 +6,8 @@ Vedic Rectifier — Time Scanner (swisseph版)
 确保 Lagna 度数和 D9/D10 边界完全一致。
 
 用法:
-  python time_scan.py --date 2000-01-01 --time 10:30 --lat 28.61 --lon 77.21
-  python time_scan.py --date 2000-01-01 --time 10:30 --lat 28.61 --lon 77.21 --range 60
+  python time_scan.py --date 2000-01-01 --time 10:30 --lat 28.61 --lon 77.21 --tz 5.5
+  python time_scan.py --date 2000-01-01 --time 10:30 --lat 28.61 --lon 77.21 --range 60 --tz 5.5
 
 注意: --time 参数为 UTC 时间。中国(UTC+8)需减8小时。
 
@@ -118,7 +118,17 @@ def calc_d10(asc_deg):
     return SIGNS[d10_sign], SIGNS_CN[d10_sign]
 
 
-def scan(date_str, time_str, lat, lon, range_min=30, tz_offset=0.0):
+def scan(
+    date_str,
+    time_str,
+    lat,
+    lon,
+    range_min=30,
+    tz_offset=0.0,
+    endpoint_start=None,
+    endpoint_end=None,
+    include_pd=False,
+):
     """
     扫描时间范围，输出每分钟的Lagna/D9/D10/Moon-Nakshatra变化 + 段首/段末两点 Dasha。
 
@@ -129,6 +139,8 @@ def scan(date_str, time_str, lat, lon, range_min=30, tz_offset=0.0):
         range_min: 扫描范围（±分钟）
         tz_offset: 出生地时区偏移(小时,如中国=8)——两点法 Dasha 的 AD 边界日期须用本地时区表示，
                    才能和用户按本地日期报的事件对齐（UTC 表示会差最多1天=边界事件误判）
+        endpoint_start/end: 只为一个已锁定候选段生成两端Dasha。不传时用全局扫描两端。
+        include_pd: 有可靠月/日事件需要PD差异审计时才开启。粗扫默认只算MD/AD。
 
     返回: (results: list of dict, dasha_endpoints: dict)
     """
@@ -143,6 +155,7 @@ def scan(date_str, time_str, lat, lon, range_min=30, tz_offset=0.0):
     results = []
     prev_sign = None
     prev_d9 = None
+    prev_d10 = None
     prev_nak = None
 
     for delta in range(-range_min, range_min + 1):
@@ -162,6 +175,8 @@ def scan(date_str, time_str, lat, lon, range_min=30, tz_offset=0.0):
             markers.append(f"★ LAGNA换座→{sign_cn}")
         if prev_d9 and d9 != prev_d9:
             markers.append(f"◆ D9换座→{d9_cn}")
+        if prev_d10 and d10 != prev_d10:
+            markers.append(f"◇ D10换座→{d10_cn}")
         if prev_nak is not None and nak_idx != prev_nak:
             markers.append(f"⚠️Moon跨Nak→{moon_nak}【段内Dasha起始主星跳变，必须在此切段分别求交】")
 
@@ -172,20 +187,27 @@ def scan(date_str, time_str, lat, lon, range_min=30, tz_offset=0.0):
             'markers': ' '.join(markers),
         })
 
-        prev_sign, prev_d9, prev_nak = sign, d9, nak_idx
+        prev_sign, prev_d9, prev_d10, prev_nak = sign, d9, d10, nak_idx
 
-    # 两点法：段首/段末各算一次完整 Vimsottari Dasha
+    # 两点法：段首/段末各算一次 Vimsottari Dasha。
+    # 粗扫只需 MD/AD；有可靠月/日事件时才补 PD，避免候选分钟×729的嵌套读取。
     # 时间口径铁律：UTC → 本地(UTC+tz) 再传，tz_offset 照传 → AD 边界日期用本地时区，与用户本地事件对齐
     dasha_endpoints = {}
     if _HAS_DASHA:
-        for label, dmin in [('段首(-%dmin)' % range_min, -range_min),
-                            ('段末(+%dmin)' % range_min, range_min)]:
+        first_offset = -range_min if endpoint_start is None else endpoint_start
+        last_offset = range_min if endpoint_end is None else endpoint_end
+        labels_and_offsets = [
+            ('段首(%+dmin)' % first_offset, first_offset),
+            ('段末(%+dmin)' % last_offset, last_offset),
+        ]
+        for label, dmin in labels_and_offsets:
             utc_dt = base_utc + timedelta(minutes=dmin)
             local_dt = utc_dt + timedelta(hours=tz_offset)
             try:
                 dasha_endpoints[label] = calculate_dasha_fixed(
                     local_dt.year, local_dt.month, local_dt.day,
-                    local_dt.hour, local_dt.minute, lat, lon, tz_offset)
+                    local_dt.hour, local_dt.minute, lat, lon, tz_offset,
+                    include_pd=include_pd)
             except Exception as e:
                 dasha_endpoints[label] = [{'error': str(e)}]
     else:
@@ -338,19 +360,49 @@ def main():
     parser.add_argument('--lat', required=True, type=float, help='出生地纬度')
     parser.add_argument('--lon', required=True, type=float, help='出生地经度')
     parser.add_argument('--range', type=int, default=30, help='扫描范围±分钟 (默认30)')
-    parser.add_argument('--tz', type=float, default=0.0, help='出生地时区偏移(小时,中国=8)——两点法Dasha的AD日期本地对齐用')
+    parser.add_argument('--tz', type=float, required=True,
+                        help='出生地时区偏移(小时,中国=8)——两点法Dasha的AD日期本地对齐用')
     parser.add_argument('--event-date', action='append', default=[],
                         help='事件日期 YYYY-MM-DD 或 YYYY-MM；可重复。只做两点MD/AD/PD差异审计，不定位出生分钟')
+    parser.add_argument('--endpoint-start', type=int,
+                        help='已锁定候选段的起点偏移（分钟）；必须与 --endpoint-end 同传')
+    parser.add_argument('--endpoint-end', type=int,
+                        help='已锁定候选段的终点偏移（分钟）；必须与 --endpoint-start 同传')
     parser.add_argument('--save', type=str, help='保存结果到文件路径')
 
     args = parser.parse_args()
+    if args.range < 1:
+        parser.error('--range 必须至少为1分钟')
     for raw_event_date in args.event_date:
         try:
             _event_probe_dates(raw_event_date)
         except ValueError as exc:
             parser.error(str(exc))
 
-    results, dasha_ep = scan(args.date, args.time, args.lat, args.lon, args.range, args.tz)
+    if (args.endpoint_start is None) != (args.endpoint_end is None):
+        parser.error('--endpoint-start 与 --endpoint-end 必须同时传入')
+    if args.endpoint_start is not None:
+        if args.endpoint_start >= args.endpoint_end:
+            parser.error('--endpoint-start 必须小于 --endpoint-end')
+        if args.endpoint_start < -args.range or args.endpoint_end > args.range:
+            parser.error('候选段两端必须位于 --range 扫描范围内')
+    if args.event_date and args.endpoint_start is None:
+        parser.error(
+            '--event-date 只能在候选段锁定后使用；请同时传入 '
+            '--endpoint-start 与 --endpoint-end'
+        )
+
+    results, dasha_ep = scan(
+        args.date,
+        args.time,
+        args.lat,
+        args.lon,
+        args.range,
+        args.tz,
+        endpoint_start=args.endpoint_start,
+        endpoint_end=args.endpoint_end,
+        include_pd=bool(args.event_date),
+    )
     print_results(results, args.date, args.time, args.lat, args.lon)
     print_dasha_endpoints(dasha_ep, args.event_date)
 
@@ -358,7 +410,7 @@ def main():
         save_results(results, args.date, args.time, args.lat, args.lon, args.save, dasha_ep, args.event_date)
 
     # 输出变化点摘要
-    print("\n## 关键变化点（Lagna/D9换座 + Moon跨Nak）")
+    print("\n## 关键变化点（Lagna/D9/D10换座 + Moon跨Nak）")
     for r in results:
         if r['markers']:
             print(f"  {r['delta']:+4d}min: {r['markers']}")

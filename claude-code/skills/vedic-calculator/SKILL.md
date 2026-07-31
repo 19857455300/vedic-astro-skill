@@ -207,6 +207,38 @@ assert sav_total == 337, f"SAV FAILED: {sav_total} != 337"
 - 用户要求月份或窄于AD的窗口时，必须读取MD×AD×PD；
 - PD缺失或校验失败时停止月级判定，禁止用AD或365.25天近似制造月级精度。
 
+### Step 4.5: 三级运渐进读取（不改canonical数据）
+
+Calculator正常排盘仍必须一次性计算、校验并写入完整`9 MD + 81 AD + 729 PD`。
+渐进读取优化的是下游模型上下文，不是删数据、少计算或改时间线。
+
+下游reader/rectifier/core/core-pro/QA一律按三层消费：
+
+1. **MD背景层**：先定人生大阶段；
+2. **AD阶段层**：再定领域候选与事件阶段；
+3. **PD微触发层**：只在用户要求月/日、实际输出窄于完整AD、
+   或相邻AD/PD接力会改变结论时读取。
+
+禁止默认把`structured_data.md`中729行PD整表送入模型上下文。使用确定性工具：
+
+```bash
+# 默认读盘：输出全部非PD数据与MD/AD，折叠729行PD
+python <calculator>/scripts/dasha_query.py --file structured_data.md --overview
+
+# 完整性校验：只输出校验结果，不展开PD
+python <calculator>/scripts/dasha_query.py --file structured_data.md --check
+
+# 月级下钻：只返回命中的PD与相邻上下文
+python <calculator>/scripts/dasha_query.py --file structured_data.md --month 2023-06 --context 1
+
+# 日级或自定义[start,end)窗口
+python <calculator>/scripts/dasha_query.py --file structured_data.md --date 2023-06-15 --context 1
+python <calculator>/scripts/dasha_query.py --file structured_data.md --start 2023-05-01 --end 2023-07-01 --context 1
+```
+
+候选比较时，先用同一方法完成所有候选的MD/AD矩阵，锁定**全部**仍需PD分辨的候选后再统一下钻。
+禁止只给当前最喜欢的候选读PD，也禁止通读729行后反向挑一个最像答案的窗口。
+
 ### Step 5: 模式选择
 
 structured_data.md 生成后，向用户输出：
