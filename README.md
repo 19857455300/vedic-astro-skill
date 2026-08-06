@@ -19,6 +19,15 @@
 
 **兼容 Antigravity、Claude Code 和 Codex。** Compatible with Antigravity, Claude Code, and Codex.
 
+> ⚠️ **Codex 用户必装补丁** — 本仓库的 `codex/skills/` 是 8 个 skill 引擎；
+> `codex-patch/` 是 Codex 专用的执行规则补丁（防跳步 + UC 证据防火墙 + 表达/产物/
+> 校准等模块）。**Codex 用户装完 skill 后必须再装补丁**，否则 skill 无法正确联动。
+> 下载与说明见 [codex-patch/README.md](codex-patch/README.md)，不用改任何 skill 文件。
+>
+> **Codex patch required.** `codex/skills/` are the 8 engines; `codex-patch/` is the
+> Codex-only execution-rules patch (phase discipline + UC firewall + rendering/routing
+> modules). **Codex users must install both.** See [codex-patch/README.md](codex-patch/README.md).
+
 ---
 
 ## 📖 目录 / Table of Contents
@@ -97,6 +106,24 @@ vedic-prashna/       ← 卜卦/时盘（独立·不需本命）/ Prashna (stand
 > ⚠️ **建议一次装全 8 个 skill。** vedic-calculator 是计算基座，多数分析 skill 都依赖它生成的 `structured_data.md`。其中 **vedic-synastry（合盘）是双人分析 skill**——需双方各一份盘；**vedic-prashna（卜卦/时盘）是独立生态位**——不需本命盘，以提问时刻起盘答一事，与本命分析路径分开。
 >
 > **Install all 8 skills.** vedic-calculator is the computational foundation that most analysis skills depend on. Among them, **vedic-synastry (synastry) is a two-person skill** (needs one chart per person); **vedic-prashna (Prashna/horary) is a standalone module** — it needs no natal chart and casts a chart for the moment of asking.
+
+### 🔧 codex-patch 是什么？/ What is the codex-patch?（Codex 用户必读）
+
+> **一句话**：`codex/skills/` 是 8 个「引擎」，负责排盘、分析、合盘等计算；
+> `codex-patch/` 是 Codex 专用的「驾驶规则」补丁，保证引擎按正确顺序、用正确姿势跑起来。
+> **Codex 用户必须两个都装**；Claude Code / Antigravity 用户不需要此补丁。
+
+补丁**不修改任何 skill 文件**，是一套复制到 `~/.codex/` 根目录的执行规则，解决 AI 跑
+印占流程时最容易出的几类问题：
+
+- **防跳步**：强制完整读取 `SKILL.md`、公开当前阶段，禁止 D1/D9/D10 跳步乱序；
+- **证据防火墙**：用户聊天里说的经历（`user_context`）不能反向"造盘面结论"，判断必须能脱离用户经历独立复现；
+- **按需加载**：校准、盲问、客户成文、普通 QA、产物路由等模块按触发条件读取，不混成一锅；
+- **标准版/Pro版不混跑**：两版同名报告文件不会被静默拼接，切版必须先说明补充/覆盖/重置；
+- **客户能看懂**：报告不堆术语、也不只剩短句，最终给出明确占星判断。
+
+**安装**：先装 8 个 skill（上方 Step 1），再按 [codex-patch/README.md](codex-patch/README.md)
+把 `codex-patch/` 里 11 个 `vedic_*.md` 复制到 `~/.codex/`，并按其中说明合并 `AGENTS.md`。
 
 ### Step 2: 安装 Python 依赖 / Install Python dependencies
 
