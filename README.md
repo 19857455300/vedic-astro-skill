@@ -49,6 +49,16 @@ git clone https://github.com/CNWU16/vedic-astro-skills.git
 cp -r vedic-astro-skills/codex/skills/vedic-* ~/.codex/skills/
 ```
 
+> ⚠️ **Codex 必装补丁（codex-patch）** — 上述仅安装 8 个 `vedic-*` skill；
+> Codex 用户还需安装执行规则补丁 `codex-patch/`（全局路由器 + UC 防火墙 +
+> 表达/产物/校准等 11 个按需模块），否则 skill 无法正确联动。
+> 安装方法见 [codex-patch/README.md](codex-patch/README.md)。
+>
+> **Codex patch required.** The commands above only install the 8 `vedic-*` skills.
+> Codex users must also install the execution-rules patch in `codex-patch/` (global
+> router + UC firewall + 11 on-demand modules), or the skills won't wire up correctly.
+> See [codex-patch/README.md](codex-patch/README.md).
+
 </details>
 
 <details>
