@@ -19,14 +19,16 @@
 
 **兼容 Antigravity、Claude Code 和 Codex。** Compatible with Antigravity, Claude Code, and Codex.
 
-> ⚠️ **Codex 用户必装补丁** — 本仓库的 `codex/skills/` 是 8 个 skill 引擎；
+> ⚠️ **Codex 完整推荐配置** — 本仓库的 `codex/skills/` 是 8 个 skill 引擎；
 > `codex-patch/` 是 Codex 专用的执行规则补丁（防跳步 + UC 证据防火墙 + 表达/产物/
-> 校准等模块）。**Codex 用户装完 skill 后必须再装补丁**，否则 skill 无法正确联动。
+> 校准等模块）。Skill 本体可以独立加载；如果要获得本仓库承诺的 Codex 阶段纪律、
+> UC 隔离、校准增强和客户成文保障，**强烈建议同时安装补丁**。
 > 下载与说明见 [codex-patch/README.md](codex-patch/README.md)，不用改任何 skill 文件。
 >
-> **Codex patch required.** `codex/skills/` are the 8 engines; `codex-patch/` is the
+> **Recommended complete Codex setup.** `codex/skills/` are the 8 engines; `codex-patch/` is the
 > Codex-only execution-rules patch (phase discipline + UC firewall + rendering/routing
-> modules). **Codex users must install both.** See [codex-patch/README.md](codex-patch/README.md).
+> modules). The skills can load independently, but install both to get the documented Codex
+> execution safeguards. See [codex-patch/README.md](codex-patch/README.md).
 
 ---
 
@@ -58,14 +60,14 @@ git clone https://github.com/CNWU16/vedic-astro-skills.git
 cp -r vedic-astro-skills/codex/skills/vedic-* ~/.codex/skills/
 ```
 
-> ⚠️ **Codex 必装补丁（codex-patch）** — 上述仅安装 8 个 `vedic-*` skill；
-> Codex 用户还需安装执行规则补丁 `codex-patch/`（全局路由器 + UC 防火墙 +
-> 表达/产物/校准等 11 个按需模块），否则 skill 无法正确联动。
+> ⚠️ **Codex 完整推荐配置（codex-patch）** — 上述仅安装 8 个 `vedic-*` skill；
+> 建议再安装 `codex-patch/`（1 个全局路由器 + 11 个按需模块，其中包含 UC 防火墙
+> 与表达、产物、校准模块），以获得完整的 Codex 执行保障。
 > 安装方法见 [codex-patch/README.md](codex-patch/README.md)。
 >
-> **Codex patch required.** The commands above only install the 8 `vedic-*` skills.
-> Codex users must also install the execution-rules patch in `codex-patch/` (global
-> router + UC firewall + 11 on-demand modules), or the skills won't wire up correctly.
+> **Recommended complete Codex setup.** The commands above only install the 8 `vedic-*`
+> skills. For the documented Codex safeguards, also install `codex-patch/` (one global
+> router + 11 on-demand modules, including the UC firewall and rendering/routing modules).
 > See [codex-patch/README.md](codex-patch/README.md).
 
 </details>
@@ -111,7 +113,8 @@ vedic-prashna/       ← 卜卦/时盘（独立·不需本命）/ Prashna (stand
 
 > **一句话**：`codex/skills/` 是 8 个「引擎」，负责排盘、分析、合盘等计算；
 > `codex-patch/` 是 Codex 专用的「驾驶规则」补丁，保证引擎按正确顺序、用正确姿势跑起来。
-> **Codex 用户必须两个都装**；Claude Code / Antigravity 用户不需要此补丁。
+> Skill 本体并不因此变成技术上的不可独立运行；但本仓库完整支持的 Codex 配置是
+> **Skill + codex-patch 同时安装**。Claude Code / Antigravity 用户不需要此补丁。
 
 补丁**不修改任何 skill 文件**，是一套复制到 `~/.codex/` 根目录的执行规则，解决 AI 跑
 印占流程时最容易出的几类问题：
@@ -121,6 +124,12 @@ vedic-prashna/       ← 卜卦/时盘（独立·不需本命）/ Prashna (stand
 - **按需加载**：校准、盲问、客户成文、普通 QA、产物路由等模块按触发条件读取，不混成一锅；
 - **标准版/Pro版不混跑**：两版同名报告文件不会被静默拼接，切版必须先说明补充/覆盖/重置；
 - **客户能看懂**：报告不堆术语、也不只剩短句，最终给出明确占星判断。
+
+这不表示Vedic skill的方法本身失效。在能够正确执行 `SKILL.md` 的其他Agent环境中，
+同一流程可能不需要这些 Codex 兼容规则。补丁的校准部分另外公开两项操作者政策：
+事件×Dasha与特质×结构按平等证据腿结算；原始分领先者在标准门槛未确认时，
+必须经过候选级专家综合才能成为当前最佳估计。它们是明确披露的 Codex 运行政策，
+不会被冒充为 `SKILL.md` 原生规则。
 
 **安装**：先装 8 个 skill（上方 Step 1），再按 [codex-patch/README.md](codex-patch/README.md)
 把 `codex-patch/` 里 11 个 `vedic_*.md` 复制到 `~/.codex/`，并按其中说明合并 `AGENTS.md`。
@@ -439,6 +448,7 @@ vedic-astro-skills/
 │           └── calc_optional_kp.py      # KP 1–249 独立栈（默认关）
 ├── claude-code/skills/              # Claude Code 版本 (同上)
 ├── codex/skills/                    # Codex 原生版本（含 agents/openai.yaml）
+├── codex-patch/                     # Codex 执行兼容增强（不包含 skill）
 └── scripts/check_skill_parity.py    # 三端逐文件一致性与遗留副本检查
 ```
 

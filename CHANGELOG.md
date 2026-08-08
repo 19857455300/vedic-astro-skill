@@ -11,13 +11,15 @@ All notable changes to this project will be documented in this file.
 ### 新增 codex-patch（Codex 执行规则补丁包）
 
 - 新增仓库根目录 `codex-patch/`，独立于 `codex/skills/`，不改动任何 skill 文件。
+- 明确包级版本为 Codex Patch v1.0.0，与 Skill Suite、盲问协议和分析师协议的版本独立。
 - 包含 Codex 版执行规则：精简 Vedic 全局路由器（`AGENTS.md`）、UC 证据防火墙
   （`vedic_uc_firewall.md`）、表达/产物/QA 路由（`vedic_client_voice.md`、
   `vedic_core_life_rendering.md`、`vedic_output_router.md`、`vedic_qa_rendering.md`）、
   盲问与分析师剪辑（`vedic_blind_qa_prompt.md`、`vedic_consultative_integration_prompt.md`），
   以及 rectifier 校准四模块（execution_overlay / settlement / question_design /
   interval_guard）。
-- README Codex 安装段新增必装补丁指引；安装与使用说明见 `codex-patch/README.md`。
+- README Codex 安装段新增完整推荐配置指引；Skill本体仍可独立加载，但缺少
+  补丁时不具备本仓库承诺的 Codex 执行保障。安装与使用说明见 `codex-patch/README.md`。
 
 ### vedic-prashna 安全重构
 
